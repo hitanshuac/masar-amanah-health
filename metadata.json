@@ -1,0 +1,6 @@
+{
+  "name": "Masar Amanah Health | مسار أمانة",
+  "description": "Privacy-First Deterministic Male Reproductive Health Screening Engine with Cultural Contextualization & Abu Dhabi Care Routing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

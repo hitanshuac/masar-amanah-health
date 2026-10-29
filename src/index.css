@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* UX-11/UX-16: Fade-in animation with prefers-reduced-motion respect */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* UX-11: Disable all animations and transitions for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-pulse {
+    animation: none;
+  }
+
+  .animate-spin {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* UX-18: Enhanced print stylesheet */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  header, footer, button, .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
+  /* Proper page breaks */
+  h2, h3, h4 {
+    page-break-after: avoid;
+  }
+
+  .rounded-3xl, .rounded-2xl {
+    border-radius: 8px !important;
+  }
+
+  /* Monospace for clinical IDs and codes */
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+    font-size: 9pt;
+  }
+
+  /* Ensure triage tier cards print with visible borders */
+  [class*="border-rose"], [class*="border-amber"], [class*="border-sky"], [class*="border-emerald"] {
+    border-width: 2px !important;
+    border-style: solid !important;
+  }
+
+  /* Facility cards print cleanly */
+  .grid {
+    display: block !important;
+  }
+
+  .grid > * {
+    page-break-inside: avoid;
+    margin-bottom: 12px;
+  }
+
+  /* Links show their URL in print */
+  a[href^="tel:"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #666;
+  }
+}
+

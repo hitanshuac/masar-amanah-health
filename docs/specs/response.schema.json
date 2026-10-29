@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "masar-amanah-response",
+  "title": "Masar Amanah AI Narrative Response Schema",
+  "description": "Enforces the 5-section structure on the Gemini cultural rephraser output.",
+  "type": "object",
+  "required": ["narrative", "model"],
+  "properties": {
+    "narrative": {
+      "type": "string",
+      "description": "The complete cultural narrative in 5 mandated sections.",
+      "minLength": 100
+    },
+    "model": {
+      "type": "string",
+      "description": "The model or engine that produced this narrative.",
+      "enum": [
+        "gemini-2.5-flash",
+        "deterministic_cultural_engine",
+        "safety_circuit_breaker_direct"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

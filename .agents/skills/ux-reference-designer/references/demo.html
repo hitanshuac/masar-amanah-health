@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI reference demo</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="layout.css">
+<link rel="stylesheet" href="components.css">
+</head>
+<body>
+
+<!-- R1 -->
+<header class="app-bar">
+  <div class="app-bar__row">
+    <div class="app-bar__brand">
+      <div class="brand-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <span class="brand-name">Brand <span class="chip chip--tonal">AI</span></span>
+    </div>
+    <div class="app-bar__search">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <label class="sr-only" for="q">Search</label>
+      <input id="q" class="search" type="search" placeholder="Search topics, models, or sources...">
+    </div>
+    <div class="app-bar__actions">
+      <button class="btn btn--tonal" aria-haspopup="menu" aria-expanded="true">Software Engineer ▾</button>
+      <div class="menu" role="menu">
+        <div class="menu__label">Role lens</div>
+        <button class="menu__item" role="menuitemradio" aria-checked="true">Software Engineer <span>✓</span></button>
+        <button class="menu__item" role="menuitemradio" aria-checked="false">Product Manager</button>
+        <button class="menu__item" role="menuitemradio" aria-checked="false">Founder / Exec</button>
+      </div>
+      <button class="icon-btn" aria-label="Alerts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10 21h4"/></svg>
+        <span class="icon-btn__dot"></span>
+      </button>
+      <div class="profile"><span class="avatar">AR</span><span class="profile__name">Alex Rivera</span><span class="status-dot" title="Signed in"></span></div>
+    </div>
+  </div>
+</header>
+
+<!-- R2 -->
+<nav class="tabs" aria-label="Topics">
+  <div class="tabs__inner" role="tablist">
+    <button class="tab" role="tab" aria-selected="true">For you</button>
+    <button class="tab" role="tab" aria-selected="false">Following <span class="count-badge">2</span></button>
+    <button class="tab" role="tab" aria-selected="false">Category A</button>
+    <button class="tab" role="tab" aria-selected="false">Category B</button>
+    <button class="tab" role="tab" aria-selected="false">Category C</button>
+  </div>
+</nav>
+
+<!-- banner -->
+<div class="banner" role="alert">
+  <div class="banner__inner">
+    <div class="banner__text"><span class="banner__badge">Breaking Alert</span><span>A very long breaking headline that must truncate instead of wrapping in the banner row</span></div>
+    <button class="btn btn--sm">Explain impact</button>
+  </div>
+</div>
+
+<!-- R3 -->
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Your briefing</h1>
+    <div class="page-header__meta">
+      <strong>Thursday, October 29</strong><span class="dot-sep"></span>
+      <span class="chip chip--success"><span class="pulse-dot"></span>Live data active</span>
+    </div>
+  </div>
+  <div class="page-header__actions">
+    <button class="btn btn--outline">↻ Refresh feed</button>
+    <button class="btn btn--primary">🔊 Listen to daily brief (60s)</button>
+  </div>
+</div>
+
+<!-- R4 -->
+<main class="content">
+  <div class="grid-12">
+    <section class="col-main">
+      <div class="panel">
+        <div class="panel__header">
+          <h2 class="panel__title">Top stories <span class="panel__sub">(2 stories)</span></h2>
+          <span class="panel__sub">Lens: <b>Software Engineer</b></span>
+        </div>
+        <div class="list">
+          <article class="item">
+            <div class="item__meta">
+              <div class="item__meta-left">
+                <span class="item__source">example.com</span><span class="dot-sep"></span><span>23m ago</span>
+                <span class="chip chip--success">✓ Grounded</span>
+                <span class="chip chip--danger">🔥 BREAKING</span>
+              </div>
+              <span class="tag">Category A</span>
+            </div>
+            <h2 class="item__title"><a href="#">A bold headline that can run to two lines on narrow screens without breaking the layout</a></h2>
+            <ul class="bullets">
+              <li>First concrete, verifiable takeaway in one sentence.</li>
+              <li>Second takeaway with a number or a named mechanism.</li>
+              <li>Third takeaway describing the practical consequence.</li>
+            </ul>
+            <div class="callout">
+              <div class="callout__title">✨ Why this matters for you (Software Engineer)</div>
+              <p class="callout__body">Role-specific implication in one or two sentences.</p>
+            </div>
+            <div class="item__actions">
+              <button class="btn btn--neutral btn--sm" aria-pressed="true">🔖 Saved</button>
+              <a class="link-action" href="#">Full coverage ↗</a>
+            </div>
+          </article>
+          <article class="item">
+            <div class="item__meta">
+              <div class="item__meta-left"><span class="item__source">example.org</span><span class="dot-sep"></span><span>2h ago</span></div>
+              <span class="tag">Category B</span>
+            </div>
+            <h2 class="item__title"><a href="#">Second story, default (unsaved) state</a></h2>
+            <ul class="bullets"><li>One bullet is enough to see spacing.</li></ul>
+            <div class="item__actions">
+              <button class="btn btn--neutral btn--sm" aria-pressed="false">🔖 Save for later</button>
+              <a class="link-action" href="#">Full coverage ↗</a>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <div class="state"><h3 class="state__title">No stories found in this section</h3><p class="state__text">Clear the search or select "For you".</p></div>
+        <div class="state state--error" style="border-top:1px solid var(--c-divider)"><h3 class="state__title">Couldn't load live data</h3><p class="state__text">Showing saved sample stories instead.</p><button class="btn btn--outline btn--sm" style="margin-top:12px">Try again</button></div>
+        <div style="padding:24px;border-top:1px solid var(--c-divider)"><div class="skeleton" style="height:14px;width:40%"></div><div class="skeleton" style="height:22px;margin-top:12px"></div></div>
+      </div>
+    </section>
+
+    <aside class="col-side stack">
+      <div class="card">
+        <div class="card__head">
+          <div class="card__head-left"><span class="icon-tile icon-tile--danger">⚡</span><h3 class="card__title">Alert radar</h3></div>
+          <span class="chip chip--danger">1 Live</span>
+        </div>
+        <p class="card__text">Notification permission: <b>default</b>. Alerts fall back to in-app banner + toast.</p>
+        <div class="mini-list"><a href="#">Breaking headline that is clamped to two lines when it gets long enough to wrap around</a></div>
+      </div>
+      <div class="card">
+        <div class="card__head">
+          <div class="card__head-left"><span class="icon-tile icon-tile--primary">🎧</span><h3 class="card__title">60s audio brief</h3></div>
+          <span class="chip chip--tonal">TTS</span>
+        </div>
+        <div class="well"><div class="well__label">Now reading</div>Script preview of the current story…</div>
+        <div class="progress" style="--p:35%"><div class="progress__bar"></div></div>
+        <div style="display:flex;gap:8px"><button class="btn btn--primary" style="flex:1">▶ Play</button><button class="btn btn--outline" aria-label="Playback speed">1x</button></div>
+      </div>
+      <div class="card">
+        <div class="card__head">
+          <div class="card__head-left"><span class="icon-tile icon-tile--success">🔖</span><h3 class="card__title">Saved reading list</h3></div>
+          <span class="chip chip--success">1 Saved</span>
+        </div>
+        <div class="mini-list"><a href="#">Saved story title</a></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="toast-region" aria-live="polite"><div class="toast">Breaking: notifications are blocked, showing this in-app instead.</div></div>
+</body>
+</html>

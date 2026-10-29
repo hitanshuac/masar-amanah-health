@@ -1,0 +1,90 @@
+/* tokens.css — single source of truth. Never hardcode a color/size outside this file.
+   Solid surfaces only: no alpha backgrounds, no filter effects, no soft shadows. */
+:root {
+  /* color roles */
+  --c-primary: #1A73E8;
+  --c-primary-hover: #1557B0;
+  --c-on-primary: #FFFFFF;
+  --c-tonal-bg: #E8F0FE;
+  --c-tonal-hover: #D2E3FC;
+  --c-tonal-border: #D2E3FC;
+  --c-tonal-text: #1967D2;
+  --c-text: #202124;
+  --c-text-body: #3C4043;
+  --c-text-muted: #5F6368;
+  --c-text-subtle: #80868B;
+  --c-canvas: #F8F9FA;   /* page background */
+  --c-surface: #FFFFFF;  /* cards, bars */
+  --c-input: #F1F3F4;    /* search, tags, icon-button hover */
+  --c-hover: #F8F9FA;    /* solid row/hover fill (never alpha) */
+  --c-hairline: #DADCE0; /* 1px borders */
+  --c-divider: #E8EAED;  /* list separators */
+  --c-danger: #D93025;
+  --c-danger-hover: #B3261E;
+  --c-danger-bg: #FCE8E6;
+  --c-danger-border: #FAD2CF;
+  --c-success: #137333;
+  --c-success-bg: #E6F4EA;
+  --c-success-border: #CEEAD6;
+  --c-g-blue: #4285F4;
+  --c-g-red: #EA4335;
+  --c-g-yellow: #FBBC05;
+  --c-g-green: #34A853;
+
+  /* typography */
+  --font-sans: "Google Sans", "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fs-2xs: 10px;
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 19px;
+  --fs-brand: 21px;
+  --fs-h1: 28px;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --lh-snug: 1.375;
+  --lh-relaxed: 1.625;
+
+  /* spacing (4px scale) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-16: 64px;
+
+  /* radii */
+  --r-chip: 6px;
+  --r-sm: 8px;
+  --r-callout: 12px;
+  --r-card: 16px;
+  --r-pill: 9999px;
+
+  /* layout */
+  --header-h: 64px;
+  --content-max: 72rem;
+  --gutter: 24px;
+  --grid-gap: 24px;
+  --stack-gap: 20px;
+  --search-max: 36rem;
+  --menu-w: 192px;
+  --bp-sm: 640px;  /* reference only; media queries need literals */
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+
+  /* elevation: hard edges only (0 blur) */
+  --elev-menu: 0 0 0 1px var(--c-hairline), 0 2px 0 0 var(--c-hairline);
+
+  /* motion + stacking */
+  --t-fast: 150ms ease;
+  --z-sticky: 40;
+  --z-menu: 50;
+  --z-toast: 60;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0ms; }
+}

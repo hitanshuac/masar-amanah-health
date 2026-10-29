@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "masar-amanah-contract",
+  "title": "Masar Amanah Health Screening Contract",
+  "description": "Data contract for the deterministic clinical screening engine input/output.",
+  "definitions": {
+    "Language": {
+      "type": "string",
+      "enum": ["en", "ar"]
+    },
+    "TobaccoUsage": {
+      "type": "string",
+      "enum": ["none", "light", "heavy"]
+    },
+    "TriageTier": {
+      "type": "string",
+      "enum": [
+        "TIER_1_EMERGENCY",
+        "TIER_2_ANDROLOGY_SPECIALIST",
+        "TIER_3_PRIMARY_CARE",
+        "TIER_4_LIFESTYLE"
+      ]
+    },
+    "ActionCode": {
+      "type": "string",
+      "enum": [
+        "URGENT_ED_TORSION_PROTOCOL",
+        "URGENT_UROLOGY_MASS_EVAL",
+        "REFERRAL_MALE_FERTILITY_SPECIALIST",
+        "REFERRAL_PCP_WORKUP",
+        "SELF_GUIDED_OPTIMIZATION"
+      ]
+    },
+    "RuleSeverity": {
+      "type": "string",
+      "enum": ["critical", "high", "moderate", "low"]
+    },
+    "RuleCategory": {
+      "type": "string",
+      "enum": ["EMERGENCY", "ANDROLOGY", "METABOLIC", "LIFESTYLE"]
+    },
+    "ScreeningInput": {
+      "type": "object",
+      "required": [
+        "acutePain", "painlessLump", "age", "heightCm", "weightKg", "bmi",
+        "steroidsTrt", "undescendedTesticle", "varicocele", "mumpsOrchitis",
+        "sittingHours", "frequentHeat", "tobaccoShisha",
+        "hasSemenReport", "semenVolume", "semenConcentration", "semenMotility", "semenMorphology"
+      ],
+      "properties": {
+        "acutePain": { "type": "boolean", "description": "Sudden, severe scrotal pain (<12-24h)" },
+        "painlessLump": { "type": "boolean", "description": "Painless firm testicular mass" },
+        "age": { "type": "integer", "minimum": 18, "maximum": 65 },
+        "heightCm": { "type": "number", "minimum": 140, "maximum": 210 },
+        "weightKg": { "type": "number", "minimum": 45, "maximum": 180 },
+        "bmi": { "type": "number", "minimum": 16, "maximum": 45 },
+        "steroidsTrt": { "type": "boolean" },
+        "undescendedTesticle": { "type": "boolean" },
+        "varicocele": { "type": "boolean" },
+        "mumpsOrchitis": { "type": "boolean" },
+        "sittingHours": { "type": "number", "minimum": 2, "maximum": 16 },
+        "frequentHeat": { "type": "boolean" },
+        "tobaccoShisha": { "$ref": "#/definitions/TobaccoUsage" },
+        "hasSemenReport": { "type": "boolean" },
+        "semenVolume": { "type": "number", "minimum": 0, "maximum": 10 },
+        "semenConcentration": { "type": "number", "minimum": 0, "maximum": 300 },
+        "semenMotility": { "type": "number", "minimum": 0, "maximum": 100 },
+        "semenMorphology": { "type": "number", "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    },
+    "TriggeredRule": {
+      "type": "object",
+      "required": ["rule_id", "category", "severity", "title_en", "title_ar", "rationale_en", "rationale_ar", "guideline_source"],
+      "properties": {
+        "rule_id": { "type": "string", "pattern": "^RULE_" },
+        "category": { "$ref": "#/definitions/RuleCategory" },
+        "severity": { "$ref": "#/definitions/RuleSeverity" },
+        "title_en": { "type": "string", "minLength": 5 },
+        "title_ar": { "type": "string", "minLength": 5 },
+        "rationale_en": { "type": "string", "minLength": 20 },
+        "rationale_ar": { "type": "string", "minLength": 20 },
+        "guideline_source": { "type": "string", "minLength": 5 },
+        "measured_value": { "type": ["string", "number"] },
+        "threshold_reference": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "ClinicalEvaluationResult": {
+      "type": "object",
+      "required": [
+        "triage_tier", "action_code", "circuit_breaker_triggered",
+        "triggered_rules", "summary_en", "summary_ar",
+        "audit_timestamp", "algorithm_version", "zero_pii_session_id"
+      ],
+      "properties": {
+        "triage_tier": { "$ref": "#/definitions/TriageTier" },
+        "action_code": { "$ref": "#/definitions/ActionCode" },
+        "circuit_breaker_triggered": { "type": "boolean" },
+        "circuit_breaker_type": { "type": "string", "enum": ["TORSION", "MASS"] },
+        "triggered_rules": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TriggeredRule" },
+          "maxItems": 12
+        },
+        "summary_en": { "type": "string" },
+        "summary_ar": { "type": "string" },
+        "audit_timestamp": { "type": "string", "format": "date-time" },
+        "algorithm_version": { "type": "string", "pattern": "^v" },
+        "zero_pii_session_id": { "type": "string", "pattern": "^AMANAH-" }
+      },
+      "additionalProperties": false
+    }
+  }
+}
