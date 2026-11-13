@@ -142,7 +142,7 @@ function runContractDriftScan(): ScanResult {
     verdict: pass ? 'PASS' : 'FAIL',
     metric: '100% Typed Sync (Zero Drift)',
     details: pass
-      ? `18/18 ScreeningInput properties & 9/9 Evaluation properties synchronized between JSON Schema and TypeScript.`
+      ? `18/18 ScreeningInput properties & ${Object.keys(evalProps).length}/${Object.keys(evalProps).length} Evaluation properties synchronized between JSON Schema and TypeScript.`
       : `Missing: ${missingInTs.join(', ')}`,
   };
 }

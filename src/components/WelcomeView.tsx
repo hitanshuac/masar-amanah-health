@@ -152,7 +152,7 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({
             return (
               <div
                 key={idx}
-                className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 flex flex-col justify-between space-y-2.5 hover:border-emerald-300 transition-colors"
+                className={`bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 flex flex-col justify-between space-y-2.5 hover:border-emerald-300 transition-colors animate-slide-up stagger-${idx + 1}`}
               >
                 <div className="flex items-center justify-between">
                   <span className="w-6 h-6 rounded-lg bg-emerald-800 text-white text-xs font-bold flex items-center justify-center font-mono">

@@ -255,7 +255,15 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                 role="switch"
                 aria-checked={input.hasSemenReport}
                 checked={input.hasSemenReport}
-                onChange={(e) => onChange({ hasSemenReport: e.target.checked })}
+                onChange={(e) =>
+                  onChange({
+                    hasSemenReport: e.target.checked,
+                    semenVolume: e.target.checked ? (input.semenVolume ?? 2.5) : null,
+                    semenConcentration: e.target.checked ? (input.semenConcentration ?? 35.0) : null,
+                    semenMotility: e.target.checked ? (input.semenMotility ?? 55.0) : null,
+                    semenMorphology: e.target.checked ? (input.semenMorphology ?? 5.5) : null,
+                  })
+                }
                 aria-label={t.semenToggleLabel}
                 className="w-5 h-5 rounded-md text-emerald-700 border-slate-300 focus:ring-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 cursor-pointer"
               />
@@ -377,12 +385,12 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                   <span className="text-[11px] text-slate-400 font-mono">{t.semenVolumeRef}</span>
                   <span
                     className={`font-mono font-bold text-xs px-2 py-0.5 rounded-md border ${
-                      input.semenVolume < 1.4
+                      (input.semenVolume ?? 2.5) < 1.4
                         ? 'bg-rose-50 text-rose-800 border-rose-300'
                         : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}
                   >
-                    {input.semenVolume.toFixed(1)} mL
+                    {(input.semenVolume ?? 2.5).toFixed(1)} mL
                   </span>
                 </div>
               </div>
@@ -391,12 +399,12 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                 min={0.5}
                 max={6.0}
                 step={0.1}
-                value={input.semenVolume}
+                value={input.semenVolume ?? 2.5}
                 onChange={(e) => onChange({ semenVolume: Number(e.target.value) })}
                 aria-label={t.semenVolumeLabel}
                 aria-valuemin={0.5}
                 aria-valuemax={6.0}
-                aria-valuenow={input.semenVolume}
+                aria-valuenow={input.semenVolume ?? 2.5}
                 className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               />
               <div className="flex justify-between text-[10px] text-slate-400 font-mono">
@@ -414,12 +422,12 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                   <span className="text-[11px] text-slate-400 font-mono">{t.semenConcentrationRef}</span>
                   <span
                     className={`font-mono font-bold text-xs px-2 py-0.5 rounded-md border ${
-                      input.semenConcentration < 15.0
+                      (input.semenConcentration ?? 35.0) < 15.0
                         ? 'bg-rose-50 text-rose-800 border-rose-300'
                         : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}
                   >
-                    {input.semenConcentration.toFixed(1)} M/mL
+                    {(input.semenConcentration ?? 35.0).toFixed(1)} M/mL
                   </span>
                 </div>
               </div>
@@ -428,12 +436,12 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                 min={1.0}
                 max={100.0}
                 step={1.0}
-                value={input.semenConcentration}
+                value={input.semenConcentration ?? 35.0}
                 onChange={(e) => onChange({ semenConcentration: Number(e.target.value) })}
                 aria-label={t.semenConcentrationLabel}
                 aria-valuemin={1.0}
                 aria-valuemax={100.0}
-                aria-valuenow={input.semenConcentration}
+                aria-valuenow={input.semenConcentration ?? 35.0}
                 className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               />
               <div className="flex justify-between text-[10px] text-slate-400 font-mono">
@@ -451,12 +459,12 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                   <span className="text-[11px] text-slate-400 font-mono">{t.semenMotilityRef}</span>
                   <span
                     className={`font-mono font-bold text-xs px-2 py-0.5 rounded-md border ${
-                      input.semenMotility < 42.0
+                      (input.semenMotility ?? 55.0) < 42.0
                         ? 'bg-rose-50 text-rose-800 border-rose-300'
                         : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}
                   >
-                    {input.semenMotility.toFixed(0)}%
+                    {(input.semenMotility ?? 55.0).toFixed(0)}%
                   </span>
                 </div>
               </div>
@@ -465,12 +473,12 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                 min={5}
                 max={90}
                 step={1}
-                value={input.semenMotility}
+                value={input.semenMotility ?? 55.0}
                 onChange={(e) => onChange({ semenMotility: Number(e.target.value) })}
                 aria-label={t.semenMotilityLabel}
                 aria-valuemin={5}
                 aria-valuemax={90}
-                aria-valuenow={input.semenMotility}
+                aria-valuenow={input.semenMotility ?? 55.0}
                 className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               />
               <div className="flex justify-between text-[10px] text-slate-400 font-mono">
@@ -488,12 +496,12 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                   <span className="text-[11px] text-slate-400 font-mono">{t.semenMorphologyRef}</span>
                   <span
                     className={`font-mono font-bold text-xs px-2 py-0.5 rounded-md border ${
-                      input.semenMorphology < 4.0
+                      (input.semenMorphology ?? 5.5) < 4.0
                         ? 'bg-rose-50 text-rose-800 border-rose-300'
                         : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}
                   >
-                    {input.semenMorphology.toFixed(1)}%
+                    {(input.semenMorphology ?? 5.5).toFixed(1)}%
                   </span>
                 </div>
               </div>
@@ -502,12 +510,12 @@ export const Step3Lifestyle: React.FC<Step3LifestyleProps> = ({ input, onChange,
                 min={1.0}
                 max={15.0}
                 step={0.5}
-                value={input.semenMorphology}
+                value={input.semenMorphology ?? 5.5}
                 onChange={(e) => onChange({ semenMorphology: Number(e.target.value) })}
                 aria-label={t.semenMorphologyLabel}
                 aria-valuemin={1.0}
                 aria-valuemax={15.0}
-                aria-valuenow={input.semenMorphology}
+                aria-valuenow={input.semenMorphology ?? 5.5}
                 className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2"
               />
               <div className="flex justify-between text-[10px] text-slate-400 font-mono">

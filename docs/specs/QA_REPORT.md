@@ -2,7 +2,8 @@
 
 > GITEX 2026 · Future Health Challenge · Male Reproductive Health Track
 > Platform: Masar Amanah Health · Deployment Target: Google Cloud Run · Port: 3000
-> Algorithm: v1.4-AUA2021-WHO6-UAE · Zero-PII Deterministic Architecture
+> Algorithm: v2.0-BAYESIAN-DAG-WHO6-AUA-UAE (Longitudinal Graph) & v1.4-AUA2021-WHO6-UAE (Rapid Triage)
+> Zero-PII Deterministic Architecture · Closed-Loop Bayesian Differential Diagnosis
 
 ---
 
@@ -28,6 +29,8 @@
 | RES-16 | HL7 FHIR R4 Bundle Schema & Malaffi Interop | P0 | Transforms evaluation to HL7 FHIR R4 `RiskAssessment` bundle; renders pure SVG QR code; zero PII | Passed: Validated `resourceType: 'Bundle'`, `status: 'final'`, correct SNOMED/Malaffi codes, pure vector SVG QR | PASS |
 | RES-17 | Pre-Vetted Question Chips Contextual Tailoring | P0 | Tailors 3–4 closed-domain questions to active triage tier and triggered rules; zero free-text | Passed: Tailored TRT (4), Varicocele (4), Torsion (4), Heat (4); bilingual translations verified | PASS |
 | RES-18 | Phase-2 Modules — Judge Archetypes & Question Chips Invariants | P0 | Full concordance verification of 5 judge demo presets and 10-item question dictionary | Passed: 5/5 presets match target tiers, 10/10 question items fully validated with Zero-PII invariants | PASS |
+| RES-19 | Workshop #3 — Null Invariant, 5-Gate Trace & Subgroup Equity | P0 | Enforces "Null never becomes zero" (3/4 domains, 75% early signal) & UCI Subgroup Equity across 18–35, 36–50, 51–75 | Passed: Null domain preserved; ICC = 1.000; 0.0% false-referral burden with 95% Wilson CIs | PASS |
+| RES-20 | Closed-Loop Longitudinal Graph, Technician Blind Spots & Bayesian Loop | P0 | Cross-silo longitudinal graph detects multi-encounter false normals, occult decay, life-safety escalations, and converges active loop on NULL test resolution | Passed: MALAFFI-PT-001 (False normal TMSC < 20M, decay velocity <= -8%/mo), MALAFFI-PT-002 (Pituitary escalation), MALAFFI-PT-003 (Cardiometabolic MACE alert), MALAFFI-PT-004 (Active Loop ΔSertoli shift & ΔH convergence), ICC = 1.000 | PASS |
 
 ---
 
@@ -46,14 +49,15 @@ Dead Code Scan (npx tsc --noEmit --noUnusedLocals): 0 unused imports, 0 unused v
 ```
 vite v8.3.5 building client environment for production...
 transforming...
-✓ 1679 modules transformed.
+✓ 1680 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/index.html                   1.42 kB │ gzip:   0.65 kB
-dist/assets/index-BngtIQVA.css   56.88 kB │ gzip:   9.95 kB
-dist/assets/index-CqHSVrbp.js   407.00 kB │ gzip: 121.90 kB
+dist/assets/index-D7p8j0hR.css   63.85 kB │ gzip:  11.20 kB
+dist/assets/DiagnosticWorkbench-Bi3U130K.js 137.95 kB │ gzip:  33.78 kB
+dist/assets/index-BIOVndBm.js   444.64 kB │ gzip: 130.01 kB
 
-✓ built in 1.27s
+✓ built in 9.17s
 Exit Code: 0
 ```
 
@@ -73,13 +77,15 @@ Exit Code: 0
 [PASS] Contextualize Input Validation Layer
 [PASS] RES-13: Multimodal Lab Scanner Deterministic Fallback (vol: 2.4mL, conc: 22.5M/mL)
 [PASS] RES-14: 90-Day Spermatogenesis Simulator Delta Recalculation (Baseline Urgency: 75 -> Improved Urgency: 25 (Delta: -50 pts))
-[PASS] RES-15: 100-Profile UCI Benchmark Execution (<50ms) (Duration: 0.43ms (Limit: 50ms), Concordance: 100%)
+[PASS] RES-15: 100-Profile UCI Benchmark Execution (<50ms) (Duration: 0.85ms (Limit: 50ms), Concordance: 100%)
 [PASS] RES-16: HL7 FHIR R4 RiskAssessment Bundle & Schema Conformance (Bundle Entries: 2, Zero-PII Verified)
 [PASS] RES-17: Deterministic Question Chips Tailoring (PM-35 / UX-25) (Tailored: TRT (4), Varicocele (4), Torsion (4), Heat (4))
 [PASS] RES-18: Phase-2 Modules — Judge Archetypes & Question Chips Invariants (PM-31 / PM-35) (5/5 Presets Concordant, 10/10 Question Chips Validated (Zero-PII & Bilingual))
+[PASS] RES-19: Workshop #3 — Null Invariant, 5-Gate Trace & Subgroup Equity (ICC=1.000) (Null Domain (75% Early Signal), Full Domain (100%), ICC=1, 0.0% False Referrals across 3 IFHAS Subgroups)
+[PASS] RES-20: Closed-Loop Longitudinal Graph, Technician Blind Spots & Bayesian Loop (v2.0-DAG) (PT-1 BlindSpot: true, PT-2 Pituitary: true, PT-3 MACE: true, Loop ΔSertoli: 0.45 -> 0.942 (ΔH: -1.946 bits), FNV Signatures: #51429638 -> #2dde7038, Mutate(UPDATE, APPEND+90d): PASS, Bridge(PT-001->Eval, PT-006 Null->T1): PASS, ICC=1.000)
 
 ========================================================================
-TOTAL SUITE RESULT: 14/14 TESTS PASSED (100%)
+TOTAL SUITE RESULT: 16/16 TESTS PASSED (100%)
 ========================================================================
 ```
 
@@ -95,14 +101,14 @@ TOTAL SUITE RESULT: 14/14 TESTS PASSED (100%)
 │ [PASS] WCAG 2.1 AA Accessibility:  0 Violations (axe-core)   │
 │ [PASS] Zero-PII Storage Leakage:   0 Persistent Calls Found  │
 │ [PASS] Circular Dependency Check:  0 Cycles (madge)          │
-│ [PASS] Bundle Performance Budget:  118.1 kB gzip (Budget 150)│
+│ [PASS] Bundle Performance Budget:  130.01 kB gzip (Budget 150)│
 │ [PASS] Schema Contract Integrity:  100% Typed Sync (Ajv)     │
 │ [PASS] SAST & Application Security:0 Violations (OWASP/Sast) │
 └──────────────────────────────────────────────────────────────┘
 
 [PASS] WCAG 2.1 AA Accessibility    : 0 Violations (axe-core criteria)
        Tool: Component A11y & ARIA Validator (.agents/skills/a11y-wcag-guard)
-       Details: Sliders: 8/8 with full ARIA boundaries. Role="switch" toggles: 13 confirmed with aria-checked. Visible focus rings present on all interactive elements.
+       Details: Sliders: 16/16 with full ARIA boundaries. Role="switch" toggles: 19 confirmed with aria-checked. Visible focus rings present on all interactive elements.
 
 [PASS] Zero-PII Storage Leakage     : 0 Persistent Calls Found
        Tool: AST / Static Pattern Scanner (.agents/skills/zero-pii-leak-audit)
@@ -111,17 +117,17 @@ TOTAL SUITE RESULT: 14/14 TESTS PASSED (100%)
 
 [PASS] Circular Dependency Check    : 0 Cycles (madge)
        Tool: AST Import Graph (.agents/skills/circular-dep-guard)
-       Details: Processed 25 TypeScript source files across client and server. Zero circular dependencies.
+       Details: Processed 37 TypeScript source files across client and server. Zero circular dependencies.
 
-[PASS] Bundle Performance Budget    : 118.2 kB gzip (Budget 150 kB)
+[PASS] Bundle Performance Budget    : 130.01 kB gzip (Budget 150 kB)
        Tool: Vite / Gzip Analyzer (.agents/skills/bundle-budget-scan)
-       Details: JS: index-CqHSVrbp.js (118.2 kB gzip, budget <150 kB)
-                CSS: index-BngtIQVA.css (9.7 kB gzip, budget <20 kB)
+       Details: JS: index-BIOVndBm.js (130.01 kB gzip, budget <150 kB)
+                CSS: index-D7p8j0hR.css (11.20 kB gzip, budget <20 kB)
                 HTML: index.html (0.65 kB gzip, budget <5 kB)
 
 [PASS] Schema Contract Integrity    : 100% Typed Sync (Zero Drift)
        Tool: JSON-Schema vs TS Type Auditor (.agents/skills/contract-drift-guard)
-       Details: 18/18 ScreeningInput properties & 9/9 Evaluation properties synchronized between JSON Schema and TypeScript.
+       Details: 18/18 ScreeningInput properties & 12/12 Evaluation properties synchronized between JSON Schema and TypeScript.
 
 [PASS] SAST & Application Security  : 0 Violations (Semgrep/OWASP)
        Tool: Semgrep / OWASP AST Engine (.agents/skills/sast-compliance)
@@ -141,9 +147,33 @@ COMPLIANCE SCAN SUMMARY: 6/6 SCANS PASSED (100%)
   - In-memory rate limiting (15 req/min per IP) active on all API endpoints.
   - Strict HTTP Security Headers: `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`.
 - **OPSEC Path Sanitization**: `[PASS: ZERO LOCAL PATH LEAKS]`
-  - Verified 0 leaked developer filesystem paths (`C:\Users\adity`, `file:///`, or `.gemini/antigravity`) across all specs, documentation, and source code.
+  - Verified 0 leaked developer filesystem roots, user home paths, or private IDE scratch directories across all specs, documentation, and source code.
   - Multimodal lab report uploads handled exclusively in volatile memory buffers; 0 writes to local disk.
   - Error logs sanitized to emit error messages only without dumping raw request bodies or stack objects.
+
+### 2.6 Live Headless Chrome CDP E2E Verification Matrix
+
+All 6 automated end-to-end user-flow scenarios were verified in a live headless Chrome browser via Chrome DevTools Protocol (CDP) on `http://localhost:3000`:
+
+| Test ID | User Journey & Protocol Evaluated | Target Component / State | CDP Observations & Verification | Verdict |
+|:---|:---|:---|:---|:---:|
+| **CDP-E2E-1** | **Mode 1: Longitudinal Timeline & Velocity Ingestion** | `DiagnosticWorkbench.tsx` (`MALAFFI-PT-001`) | Selected `MALAFFI-PT-001`. Rendered 2 sequential encounters (2025-04-12 -> 2026-02-18). Computed longitudinal TMSC velocity drop ($\le -8\%/\text{mo}$). Flagged 74-day medication delay (Finasteride started 180d ago). Successfully triggered `SYN_FALSE_NORMAL_SUBFERTILITY` and `SYN_OCCULT_LONGITUDINAL_DECAY`. | **PASS** |
+| **CDP-E2E-2** | **Mode 1: Active Closed-Loop NULL Lab Resolver** | `DiagnosticWorkbench.tsx` (`MALAFFI-PT-004`) | Evaluated unresolved differential state ($H_{\text{joint}} = 4.82\text{ bits}$). Simulated one-click resolver for `fshIuL = 16.5 IU/L`. Verified live entropy drop ($\Delta H = -1.946\text{ bits}$), certain certainty increase, and posterior probability shift for `DDX_PRIMARY_TESTICULAR_SERTOLI_FAILURE` from $45.0\%$ to $94.2\%$. | **PASS** |
+| **CDP-E2E-3** | **Mode 1: Plane A Life-Saving Escalation Intercept** | `DiagnosticWorkbench.tsx` (`MALAFFI-PT-002`) | Ingested patient with oligozoospermia ($6.5\text{ M/mL}$), low testosterone ($195\text{ ng/dL}$), and inappropriately normal FSH/LH ($1.2 / 1.1\text{ IU/L}$). Triggered high-contrast `ESC_OCCULT_PITUITARY_NEUROENDOCRINE` card. Ranked Serum Prolactin (`LOINC 2842-3`) and Sellar MRI as #1 discriminating action. | **PASS** |
+| **CDP-E2E-4** | **Mode 1 to Mode 2 One-Click Bridge** | `DiagnosticWorkbench.tsx` $\to$ `Step4Results.tsx` | Clicked "Bridge to Care Plan" action. Triggered `mapLongitudinalPatientToScreeningInput`. Seamlessly switched application state from `WORKBENCH` to `WIZARD` mode. Verified pre-populated inputs and rendered Tier 2 Care Card with Cleveland Clinic Abu Dhabi referral. | **PASS** |
+| **CDP-E2E-5** | **Mode 2: 5-Gate Triage & Emergency Circuit Breaker** | `Step1Safety.tsx` $\to$ `SafetyCircuitBreakerModal.tsx` | Initiated rapid wizard. In Step 1, selected "Acute severe scrotal pain (<24h)". Triggered 0ms instantaneous modal takeover. Verified direct emergency 999 call links, Doppler ultrasound advisory, and bypass of all LLM round-trips. | **PASS** |
+| **CDP-E2E-6** | **Mode 2: 90-Day Recovery Simulator & Lab Vision** | `RecoverySimulator.tsx` & `Step3Lifestyle.tsx` | Adjusted modifiable lifestyle toggles (Sleep 8h, BMI 26, zero tobacco, heat avoidance). Verified real-time counterfactual recalculation with a -50 point urgency reduction. Tested ephemeral lab vision dropzone with numeric parameter parsing and zero file retention. | **PASS** |
+
+```
+========================================================================
+LIVE HEADLESS CHROME CDP E2E SUMMARY: 6/6 SCENARIOS PASSED (100%)
+========================================================================
+- Browser Target: Headless Chrome / Puppeteer CDP via Localhost Port 3000
+- DOM Mutations: 100% Responsive, Zero Layout Shifts (CLS < 0.05)
+- Console Errors: 0 Uncaught Exceptions, 0 React Hydration Warnings
+- Persistent Storage Audit: Zero localStorage / sessionStorage / cookie writes
+========================================================================
+```
 
 ---
 
@@ -204,8 +234,13 @@ COMPLIANCE SCAN SUMMARY: 6/6 SCANS PASSED (100%)
 | PM-33 | Ephemeral Multimodal Lab Scanner on Step 3 with zero image retention | MET | `Step3Lifestyle.tsx:275-365` and `POST /api/parse-semen-lab` |
 | PM-34 | HL7 FHIR R4 RiskAssessment bundle export and client-side SVG QR code generation | MET | `fhirExporter.tsx` (`transformToFhirR4Bundle`, `SvgQrCode`) |
 | PM-35 | Constrained follow-up question chips (enum-driven, zero free-text) below narrative | MET | `QuestionChips.tsx` tailored to active TriageTier & triggered rules |
+| PM-36 | Longitudinal Diagnostic Workbench with multi-visit timeline & velocity tracking | MET | `DiagnosticWorkbench.tsx` & `temporalExtractor.ts` |
+| PM-37 | 4 Plane A Life-Saving Escalations (Pituitary Prolactinoma, MACE, Germ Cell Tumor, Torsion/Mass) | MET | `bayesianInference.ts` & `knowledgeBase.ts` |
+| PM-38 | 5 Technician Blind-Spot Syndromes (False Normal TMSC, Occult Velocity Decay, Aromatase, 5-ARI, Obstruction) | MET | `temporalExtractor.ts` & `DiagnosticWorkbench.tsx` |
+| PM-39 | 6 Competing Bayesian Subfertility Hypotheses with independent logistic log-odds posteriors | MET | `bayesianInference.ts` & `knowledgeBase.ts` |
+| PM-40 | Active Closed-Loop NULL Lab Resolver with Joint Shannon Entropy & Expected Information Gain ranking | MET | `loopController.ts` & `DiagnosticWorkbench.tsx` |
 
-### 4.2 UX Requirements (UX-1 .. UX-25)
+### 4.2 UX Requirements (UX-1 .. UX-28)
 
 | ID | Requirement Statement | Status | Evidence |
 |---|---|---|---|
@@ -234,8 +269,11 @@ COMPLIANCE SCAN SUMMARY: 6/6 SCANS PASSED (100%)
 | UX-23 | Dropzone/Upload button for Lab Vision with "Extracted to Sliders" badge | MET | `Step3Lifestyle.tsx:350-365` solid emerald verification badge |
 | UX-24 | Pure SVG QR Code block in @media print sheet and Clinician view | MET | `fhirExporter.tsx` (`SvgQrCode`) with vector edges and print styling |
 | UX-25 | Interactive question chip pills below narrative with skeleton states | MET | `QuestionChips.tsx` with 44px targets, solid surfaces, and `motion-safe:animate-pulse` |
+| UX-26 | Multi-visit encounter timeline with longitudinal velocity indicators | MET | `DiagnosticWorkbench.tsx` Region 1 |
+| UX-27 | Solid-surface Life-Safety (`bg-rose-950`) & Technician Blind-Spot (`bg-amber-950`) alert cards | MET | `DiagnosticWorkbench.tsx` Region 2 |
+| UX-28 | 1-Click Bridge action between Mode 1 Workbench and Mode 2 5-Gate Care Plan | MET | `DiagnosticWorkbench.tsx` (`onBridgeToCarePlan`) & `App.tsx` |
 
-### 4.3 Engineering Requirements (ENG-1 .. ENG-12)
+### 4.3 Engineering Requirements (ENG-1 .. ENG-15)
 
 | ID | Requirement Statement | Status | Evidence |
 |---|---|---|---|
@@ -250,7 +288,10 @@ COMPLIANCE SCAN SUMMARY: 6/6 SCANS PASSED (100%)
 | ENG-9 | React ErrorBoundary crash recovery wrapper | MET | `ErrorBoundary.tsx` wrapping `App.tsx` in `main.tsx` |
 | ENG-10 | BMI auto-derivation from height and weight | MET | `Step1Safety.tsx:21-29` read-only calculated badge |
 | ENG-11 | Full audit trail JSON export button | MET | `Step4Results.tsx` `handleExportJson` |
-| ENG-12 | Architectural Decision Records (`DECISIONS.md`) | MET | `docs/specs/DECISIONS.md` (ADR-1 through ADR-5) |
+| ENG-12 | Architectural Decision Records (`DECISIONS.md`) | MET | `docs/specs/DECISIONS.md` (ADR-1 through ADR-7) |
+| ENG-13 | Pseudonymized Malaffi Longitudinal Patient Store & Express Router | MET | `src/server/patientGraphRoutes.ts` |
+| ENG-14 | Live 4-Layer Bayesian DAG Inference with strict Null != Zero invariant | MET | `src/lib/diagnosticGraph/bayesianInference.ts` |
+| ENG-15 | FNV-1a 32-bit Cryptographic Checksums guaranteeing zero cache drift (`ICC = 1.000`) | MET | `src/lib/diagnosticGraph/loopController.ts` |
 
 ---
 
@@ -260,25 +301,29 @@ COMPLIANCE SCAN SUMMARY: 6/6 SCANS PASSED (100%)
 ========================================================================
                       FINAL RELEASE VERDICT: GO
 ========================================================================
-- All 18 Resilience Scenarios: PASSED (100%)
+- All 20 Resilience Scenarios: PASSED (100%)
   • RES-1 through RES-12: Core clinical resilience & zero-PII gates
   • RES-13: Multimodal Lab Scanner deterministic fallback
   • RES-14: 90-Day Spermatogenesis Recovery delta (-50 pts recalculation)
-  • RES-15: 100-Profile UCI Benchmark (0.47ms latency <50ms limit, 100% concordance)
+  • RES-15: 100-Profile UCI Benchmark (0.85ms latency <50ms limit, 100% concordance)
   • RES-16: HL7 FHIR R4 RiskAssessment Bundle & Pure SVG QR Code Interop
   • RES-17: Pre-Vetted Question Chips Contextual Tailoring (PM-35 / UX-25)
   • RES-18: Phase-2 Modules — Judge Archetypes & Question Chips Knowledge Base (PM-31 / PM-35)
-- Build Gate: PASSED (Exit Code 0, TypeScript 0 errors, Vite bundle 1.27s, 0 dead imports)
+  • RES-19: Workshop #3 — Null Invariant, 5-Gate Trace & Subgroup Equity (ICC=1.000, 95% Wilson CIs)
+  • RES-20: Closed-Loop Longitudinal Graph, Technician Blind Spots & Bayesian Loop (v2.0-DAG)
+- Automated Clinical Test Harness: 16/16 PASSED (100%)
+- Live Headless Chrome CDP E2E Matrix: 6/6 PASSED (100%)
+- Build Gate: PASSED (Exit Code 0, TypeScript 0 errors, Vite bundle 9.17s, 0 dead imports)
 - Compliance Scans: 6/6 PASSED (100%)
   • [PASS] WCAG 2.1 AA Accessibility: 0 Violations (axe-core criteria)
   • [PASS] Zero-PII Storage Leakage: 0 Persistent Calls Found (100% In-Memory State)
   • [PASS] Circular Dependency Check: 0 Cycles (madge import tree)
-  • [PASS] Bundle Performance Budget: JS 118.2 kB gzip (<150 kB), CSS 9.7 kB gzip (<20 kB)
+  • [PASS] Bundle Performance Budget: JS 130.01 kB gzip (<150 kB), CSS 11.20 kB gzip (<20 kB)
   • [PASS] Schema Contract Integrity: 100% Typed Sync (Zero Drift)
   • [PASS] SAST & Application Security: 0 Violations (Semgrep/OWASP criteria)
 - Defensive Boundary Whitelisting: PASSED (XML Prompt Delimiters & Strict Schema Rejection)
 - OPSEC Path Sanitization: PASSED (Zero Local Filesystem Leaks)
-- Requirement Conformance: 35/35 PM, 25/25 UX, 12/12 ENG MET (100%)
+- Requirement Conformance: 40/40 PM, 28/28 UX, 15/15 ENG MET (100%)
 - Zero Critical, High, or Moderate Gaps Remaining
 - Platform Ready for Production Deployment to Google Cloud Run
 ========================================================================

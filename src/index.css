@@ -38,6 +38,29 @@
     animation: none;
   }
 
+  .animate-slide-up,
+  .animate-slide-right,
+  .animate-scale-in,
+  .animate-pulse-glow,
+  .animate-celebrate,
+  .animate-loops-closed,
+  .animate-toast-in,
+  .animate-toast-out,
+  .animate-step-enter,
+  .animate-step-exit {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-bar-fill {
+    transition: none;
+  }
+
+  .info-gain-bar::after {
+    animation: none;
+  }
+
   *,
   *::before,
   *::after {
@@ -104,3 +127,256 @@
   }
 }
 
+
+/* ============================================================
+   GITEX 2026 Hackathon — Motion Vocabulary
+   All animations respect prefers-reduced-motion (see block above)
+   ============================================================ */
+
+/* ---------- 1. Spring entrance animations ---------- */
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes expandWidth {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--target-width, 100%);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ---------- 2. Stagger delay utilities ---------- */
+
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+
+/* ---------- 3. Interactive feedback ---------- */
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 8px 0 rgba(16, 185, 129, 0.3);
+  }
+}
+
+@keyframes celebratePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 8px 0 rgba(16, 185, 129, 0.3);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.3);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+.animate-celebrate {
+  animation: celebratePulse 0.4s ease-in-out;
+}
+
+/* ---------- 4. Counter / number animation helper ---------- */
+
+@keyframes countUp {
+  from {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.4;
+  }
+  to {
+    font-variant-numeric: tabular-nums;
+    opacity: 1;
+  }
+}
+
+/* ---------- 5. Bar fill animation (Bayesian bars) ---------- */
+
+.animate-bar-fill {
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bar-ghost {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ---------- 6. Guided Loop pulse ---------- */
+
+@keyframes loopClosedCelebrate {
+  0% {
+    border-color: #059669; /* emerald-600 */
+  }
+  50% {
+    border-color: #34d399; /* emerald-400 */
+  }
+  100% {
+    border-color: #059669; /* emerald-600 */
+  }
+}
+
+.animate-loops-closed {
+  animation: loopClosedCelebrate 0.6s ease-in-out;
+}
+
+/* ---------- 7. Floating toast animations ---------- */
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+.animate-toast-in {
+  animation: toastSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-toast-out {
+  animation: toastSlideOut 0.3s ease-in both;
+}
+
+/* ---------- 8. Step transition ---------- */
+
+@keyframes stepEnter {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes stepExit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+.animate-step-enter {
+  animation: stepEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-step-exit {
+  animation: stepExit 0.3s ease-in both;
+}
+
+/* ---------- 9. Information Gain bit bar ---------- */
+
+@keyframes shimmerSweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.info-gain-bar {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #059669, #10b981, #34d399);
+}
+
+.info-gain-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.25) 50%,
+    transparent 100%
+  );
+  animation: shimmerSweep 2s ease-in-out infinite;
+}
+
+/* ---------- 10. Sparkline container ---------- */
+
+.sparkline-container {
+  display: inline-flex;
+  align-items: flex-end;
+  height: 20px;
+  overflow: visible;
+}

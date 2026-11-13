@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Header } from './components/Header.tsx';
 import { JudgeDemoBar, DemoPreset } from './components/JudgeDemoBar.tsx';
 import { StepIndicator } from './components/StepIndicator.tsx';
@@ -17,7 +17,16 @@ import { PrivacyModal } from './components/PrivacyModal.tsx';
 import { ScreeningInput, ClinicalEvaluationResult, Language } from './types/screening.ts';
 import { evaluateScreening } from './lib/clinicalEngine.ts';
 import { TRANSLATIONS } from './i18n/translations.ts';
-import { ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShieldCheck, Activity } from 'lucide-react';
+import { mapLongitudinalPatientToScreeningInput } from './lib/diagnosticGraph/patientMapper.ts';
+import {
+  LongitudinalPatientRecord,
+  ClosedLoopGraphEvaluation,
+} from './types/diagnosticGraph.ts';
+
+const DiagnosticWorkbench = lazy(() =>
+  import('./components/DiagnosticWorkbench.tsx').then((m) => ({ default: m.DiagnosticWorkbench }))
+);
 
 const INITIAL_INPUT: ScreeningInput = {
   acutePain: false,
@@ -42,6 +51,7 @@ const INITIAL_INPUT: ScreeningInput = {
 
 export default function App() {
   const [language, setLanguage] = useState<Language>('ar');
+  const [platformMode, setPlatformMode] = useState<'WORKBENCH' | 'WIZARD'>('WORKBENCH');
   const [currentStep, setCurrentStep] = useState<number>(0); // 0 = Welcome, 1..4 = Wizard steps
   const [input, setInput] = useState<ScreeningInput>(INITIAL_INPUT);
   const [evaluation, setEvaluation] = useState<ClinicalEvaluationResult | null>(null);
@@ -51,6 +61,10 @@ export default function App() {
 
   const [activePresetId, setActivePresetId] = useState<string | null>(null);
   const [forceBenchmark, setForceBenchmark] = useState<boolean>(false);
+  const [bridgedGraphContext, setBridgedGraphContext] = useState<{
+    record: LongitudinalPatientRecord;
+    graphEvaluation: ClosedLoopGraphEvaluation;
+  } | null>(null);
 
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState<boolean>(false);
   const [isCircuitBreakerModalOpen, setIsCircuitBreakerModalOpen] = useState<boolean>(false);
@@ -83,6 +97,7 @@ export default function App() {
   const handleResetSession = () => {
     setActivePresetId(null);
     setForceBenchmark(false);
+    setBridgedGraphContext(null);
     setInput({ ...INITIAL_INPUT });
     setEvaluation(null);
     setNarrative(null);
@@ -93,6 +108,7 @@ export default function App() {
   const handleSelectPreset = (preset: DemoPreset) => {
     setActivePresetId(preset.id);
     setInput(preset.input);
+    setBridgedGraphContext(null);
     setForceBenchmark(false);
 
     if (preset.tier === 'TIER_1_EMERGENCY') {
@@ -105,6 +121,34 @@ export default function App() {
     } else {
       executeClinicalTriage(preset.input);
     }
+  };
+
+  const handleBridgeToCarePlan = (
+    record: LongitudinalPatientRecord,
+    graphEvaluation: ClosedLoopGraphEvaluation
+  ) => {
+    const mappedInput = mapLongitudinalPatientToScreeningInput(record);
+    setInput(mappedInput);
+    setBridgedGraphContext({ record, graphEvaluation });
+    setPlatformMode('WIZARD');
+    setActivePresetId(null);
+    setForceBenchmark(false);
+
+    if (mappedInput.acutePain || mappedInput.painlessLump) {
+      const evalResult = evaluateScreening(mappedInput);
+      setEvaluation(evalResult);
+      setCurrentStep(4);
+      setIsLoadingNarrative(false);
+      setNarrative(null);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      executeClinicalTriage(mappedInput);
+    }
+  };
+
+  const handleReturnToWorkbench = () => {
+    setPlatformMode('WORKBENCH');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleTriggerBenchmark = () => {
@@ -238,16 +282,77 @@ This screening report is educational and does not constitute a formal diagnosis.
         showReset={currentStep > 0}
       />
 
-      {/* R1/R2 Solid-Surface Judge Demo Bar (PM-31 & UX-21) */}
-      <JudgeDemoBar
-        activePresetId={activePresetId}
-        onSelectPreset={handleSelectPreset}
-        language={language}
-        onTriggerBenchmark={handleTriggerBenchmark}
-      />
+      {/* Prominent Solid-Surface Platform Mode Switcher Bar */}
+      <div className="bg-slate-900 border-b border-slate-800 text-white px-4 py-2.5 print:hidden">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider bg-emerald-900 text-emerald-300 px-2.5 py-0.5 rounded font-bold border border-emerald-700">
+              GITEX 2026 · CLINICAL PLATFORM
+            </span>
+            <span className="text-xs font-semibold text-slate-300">
+              {isAr ? 'اختر وضع التشغيل السريري:' : 'Platform Operational Mode:'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+            <button
+              onClick={() => setPlatformMode('WORKBENCH')}
+              className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                platformMode === 'WORKBENCH'
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              {isAr
+                ? 'لوحة التحليل الطولي والبايزي (ملفي EHR)'
+                : 'Longitudinal Differential Workbench (Malaffi EHR)'}
+            </button>
+
+            <button
+              onClick={() => setPlatformMode('WIZARD')}
+              className={`flex-1 sm:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 ${
+                platformMode === 'WIZARD'
+                  ? 'bg-emerald-700 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              {isAr
+                ? 'معالج الفرز الفوري للمرضى (5 بوابات)'
+                : 'Rapid Patient Self-Screening (5-Gate)'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* R1/R2 Solid-Surface Judge Demo Bar (PM-31 & UX-21) - Visible in Wizard Mode */}
+      {platformMode === 'WIZARD' && (
+        <JudgeDemoBar
+          activePresetId={activePresetId}
+          onSelectPreset={handleSelectPreset}
+          language={language}
+          onTriggerBenchmark={handleTriggerBenchmark}
+        />
+      )}
 
       {/* Main Container */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col">
+        {platformMode === 'WORKBENCH' ? (
+          <Suspense
+            fallback={
+              <div className="p-8 text-center bg-white border border-slate-200 rounded-xl text-slate-600 font-medium">
+                {isAr ? 'جاري تحميل لوحة ملفي...' : 'Loading Malaffi Workbench...'}
+              </div>
+            }
+          >
+            <DiagnosticWorkbench
+              language={language}
+              onBridgeToCarePlan={handleBridgeToCarePlan}
+            />
+          </Suspense>
+        ) : (
+          <>
         {/* Step Progress Indicator (Visible in steps 1 to 4) */}
         {currentStep > 0 && (
           <div className="mb-6">
@@ -306,6 +411,8 @@ This screening report is educational and does not constitute a formal diagnosis.
               language={language}
               onReset={handleResetSession}
               forceBenchmark={forceBenchmark}
+              bridgedGraphContext={bridgedGraphContext}
+              onReturnToWorkbench={handleReturnToWorkbench}
             />
           )}
         </div>
@@ -335,6 +442,8 @@ This screening report is educational and does not constitute a formal diagnosis.
               <ArrowRight className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
             </button>
           </div>
+        )}
+          </>
         )}
       </main>
 

@@ -37,10 +37,10 @@ export interface ScreeningInput {
 
   // Step 3 (Optional): WHO 6th Edition Semen Analysis
   hasSemenReport: boolean;
-  semenVolume: number;         // mL (WHO 6th Ed: >= 1.4 mL)
-  semenConcentration: number;  // x10^6 / mL (WHO 6th Ed: >= 15.0 M/mL)
-  semenMotility: number;       // % Total Motility PR + NP (WHO 6th Ed: >= 42.0%)
-  semenMorphology: number;     // % Normal forms strict criteria (WHO 6th Ed: >= 4.0%)
+  semenVolume: number | null;         // mL (WHO 6th Ed: >= 1.4 mL)
+  semenConcentration: number | null;  // x10^6 / mL (WHO 6th Ed: >= 15.0 M/mL)
+  semenMotility: number | null;       // % Total Motility PR + NP (WHO 6th Ed: >= 42.0%)
+  semenMorphology: number | null;     // % Normal forms strict criteria (WHO 6th Ed: >= 4.0%)
 }
 
 export interface TriggeredRule {
@@ -72,6 +72,8 @@ export interface ClinicalEvaluationResult {
   audit_timestamp: string;
   algorithm_version: string;
   zero_pii_session_id: string;
+  gates?: GateStatus[];
+  evidenceIndex?: EvidenceCompletenessIndex;
 }
 
 export interface CareFacility {
@@ -86,4 +88,47 @@ export interface CareFacility {
   badge_ar: string;
   emergency: boolean;
   locationUrl?: string;
+}
+
+/** 5-Gate Coordination Architecture (Inception42 Blueprint) */
+export type GateDecision = 'PASS' | 'STOP' | 'HOLD' | 'WAIT' | 'FLAG_NULL';
+
+export interface GateStatus {
+  gate: number;
+  name: string;
+  condition: string;
+  decision: GateDecision;
+  detail: string;
+}
+
+/** Evidence Domain Tracking (Dr. Nance Elnaker Q&A 46:18) */
+export interface EvidenceDomain {
+  id: number;
+  name: string;
+  present: boolean;
+  detail: string;
+}
+
+export interface EvidenceCompletenessIndex {
+  domainsPresent: number;
+  domainsTotal: number;
+  completenessPercent: number;
+  domains: EvidenceDomain[];
+  label: string;
+  isEarlyRiskSignal: boolean;
+}
+
+/** Honest Component Status Badges (Inception42 Slides 5, 10, 17) */
+export type ComponentStatus = 'working_in_demo' | 'simulated_in_prototype' | 'proposed_for_production';
+
+export interface ComponentStatusBadge {
+  component: string;
+  status: ComponentStatus;
+  detail: string;
+}
+
+/** Extended Clinical Evaluation with Inception42 Enhancements */
+export interface ClinicalEvaluationEnhanced extends ClinicalEvaluationResult {
+  gates: GateStatus[];
+  evidenceIndex: EvidenceCompletenessIndex;
 }

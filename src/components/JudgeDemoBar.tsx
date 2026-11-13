@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Sparkles, Activity, ShieldAlert, AlertTriangle, CheckCircle, Flame, Play } from 'lucide-react';
-import { ScreeningInput, Language, TriageTier } from '../types/screening.ts';
+import { ScreeningInput, Language, TriageTier, GateDecision } from '../types/screening.ts';
 
 export interface DemoPreset {
   id: string;
@@ -15,6 +15,8 @@ export interface DemoPreset {
   tierBadge: string;
   subtitleEn: string;
   subtitleAr: string;
+  gateOutcome: string;
+  gateDecision: GateDecision;
   input: ScreeningInput;
 }
 
@@ -27,6 +29,8 @@ export const JUDGE_DEMO_PRESETS: DemoPreset[] = [
     tierBadge: 'EMERGENCY',
     subtitleEn: 'Acute Scrotal Pain (<12h Torsion Protocol)',
     subtitleAr: 'ألم حاد في الصفن (<12 ساعة، التواء الخصية)',
+    gateOutcome: 'Gate 2: STOP',
+    gateDecision: 'STOP',
     input: {
       acutePain: true,
       painlessLump: false,
@@ -56,6 +60,8 @@ export const JUDGE_DEMO_PRESETS: DemoPreset[] = [
     tierBadge: 'ANDROLOGY',
     subtitleEn: 'Varicocele + Exogenous Steroids + Semen Deficit',
     subtitleAr: 'دوالي الخصية + منشطات بنائية + خلل في النطاف',
+    gateOutcome: 'Gate 5: WAIT',
+    gateDecision: 'WAIT',
     input: {
       acutePain: false,
       painlessLump: false,
@@ -85,6 +91,8 @@ export const JUDGE_DEMO_PRESETS: DemoPreset[] = [
     tierBadge: 'METABOLIC',
     subtitleEn: 'Severe Obesity (BMI 34) + Post-pubertal Mumps',
     subtitleAr: 'سمنة مفرطة (كتلة 34) + نكاف بعد البلوغ',
+    gateOutcome: 'Gate 3: FLAG_NULL → Gate 5: WAIT',
+    gateDecision: 'WAIT',
     input: {
       acutePain: false,
       painlessLump: false,
@@ -114,6 +122,8 @@ export const JUDGE_DEMO_PRESETS: DemoPreset[] = [
     tierBadge: 'LIFESTYLE',
     subtitleEn: 'Sitting 11h/day + Frequent Saunas + Heavy Shisha',
     subtitleAr: 'جلوس 11 ساعة/يوم + ساونا متكررة + شيشة يومية',
+    gateOutcome: 'Gate 5: PASS',
+    gateDecision: 'PASS',
     input: {
       acutePain: false,
       painlessLump: false,
@@ -143,6 +153,8 @@ export const JUDGE_DEMO_PRESETS: DemoPreset[] = [
     tierBadge: 'OPTIMAL',
     subtitleEn: 'Normal BMI + Low Sitting + Optimal WHO 6th Semen',
     subtitleAr: 'كتلة جسم مثالية + نشاط حركي + فحص نطاف سليم',
+    gateOutcome: 'Gate 5: PASS',
+    gateDecision: 'PASS',
     input: {
       acutePain: false,
       painlessLump: false,
@@ -183,6 +195,21 @@ export const JudgeDemoBar: React.FC<JudgeDemoBarProps> = ({
 }) => {
   const isAr = language === 'ar';
 
+  const getGateBadgeStyle = (decision: GateDecision) => {
+    switch (decision) {
+      case 'STOP':
+        return 'bg-rose-900/80 text-rose-300 border-rose-700';
+      case 'WAIT':
+      case 'HOLD':
+        return 'bg-sky-900/80 text-sky-300 border-sky-700';
+      case 'FLAG_NULL':
+        return 'bg-violet-900/80 text-violet-300 border-violet-700';
+      case 'PASS':
+      default:
+        return 'bg-emerald-900/80 text-emerald-300 border-emerald-700';
+    }
+  };
+
   return (
     <div
       className="bg-slate-900 border-b border-slate-800 text-white px-3 py-2.5 print:hidden shadow-md"
@@ -195,11 +222,16 @@ export const JudgeDemoBar: React.FC<JudgeDemoBarProps> = ({
             <Sparkles className="w-3.5 h-3.5" />
           </div>
           <div>
-            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
-              {isAr ? 'شريط تقييم الحكام (1-Click Presets)' : 'Judge Demo Presets'}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider block">
+                {isAr ? 'شريط تقييم الحكام (1-Click Presets)' : 'Judge Demo Presets'}
+              </span>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                5-Gate Flow
+              </span>
+            </div>
             <span className="text-[10px] text-slate-400">
-              {isAr ? 'اختبار المسارات السريرية بنقرة واحدة' : 'Select clinical archetype for instant evaluation'}
+              {isAr ? 'اختبار المسارات السريرية وبوابات القرار' : 'Select clinical archetype to evaluate 5-gate coordination'}
             </span>
           </div>
         </div>
@@ -214,7 +246,7 @@ export const JudgeDemoBar: React.FC<JudgeDemoBarProps> = ({
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => onSelectPreset(preset)}
-                title={isAr ? preset.subtitleAr : preset.subtitleEn}
+                title={`${isAr ? preset.subtitleAr : preset.subtitleEn} • ${preset.gateOutcome}`}
                 className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
                   isActive
                     ? 'bg-emerald-600 border-emerald-500 text-white shadow-xs'
@@ -231,6 +263,9 @@ export const JudgeDemoBar: React.FC<JudgeDemoBarProps> = ({
                   <CheckCircle className="w-3 h-3 text-emerald-400" />
                 )}
                 <span>{isAr ? preset.nameAr : preset.nameEn}</span>
+                <span className={`text-[9px] font-mono px-1 py-0.2 rounded border ${getGateBadgeStyle(preset.gateDecision)}`}>
+                  {preset.gateDecision}
+                </span>
               </button>
             );
           })}
@@ -241,10 +276,10 @@ export const JudgeDemoBar: React.FC<JudgeDemoBarProps> = ({
             onClick={onTriggerBenchmark}
             disabled={isBenchmarkRunning}
             className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 border border-amber-500 shadow-xs disabled:opacity-50"
-            title="Run 100-Patient UCI Fertility Benchmark Suite"
+            title="Run 100-Patient UCI Fertility Benchmark Suite with 95% Wilson CIs & Equity Subgroups"
           >
             <Play className={`w-3 h-3 ${isBenchmarkRunning ? 'animate-spin' : ''}`} />
-            <span>{isAr ? 'تشغيل فحص UCI (100 مريض)' : 'Run 100-UCI Benchmark'}</span>
+            <span>{isAr ? 'فحص UCI (100 مريض)' : 'Run 100-UCI Suite'}</span>
           </button>
         </div>
       </div>

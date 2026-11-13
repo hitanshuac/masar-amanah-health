@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { handleContextualize } from './src/server/contextualizeHandler.ts';
 import { handleParseSemenLab } from './src/server/labParserHandler.ts';
+import { patientGraphRouter } from './src/server/patientGraphRoutes.ts';
 
 dotenv.config();
 
@@ -96,6 +97,9 @@ async function startServer() {
       return res.status(500).json({ error: 'Failed to extract lab parameters' });
     }
   });
+
+  // Closed-Loop Longitudinal Retrieval & Bayesian Differential Diagnosis Graph Router
+  app.use('/api/patients', patientGraphRouter);
 
   // Frontend integration: Vite middleware in dev, static files in production
   const isProd = process.env.NODE_ENV === 'production';

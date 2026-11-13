@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { evaluateScreening } from '../src/lib/clinicalEngine.ts';
+import { evaluateScreening, computeEvidenceIndex, computeGateStatuses } from '../src/lib/clinicalEngine.ts';
 import { handleContextualize } from '../src/server/contextualizeHandler.ts';
 import { handleParseSemenLab } from '../src/server/labParserHandler.ts';
 import { runUciBenchmark } from '../src/data/uciBenchmarkCohort.ts';
@@ -12,6 +12,14 @@ import { ScreeningInput } from '../src/types/screening.ts';
 import { getTailoredQuestionIds, QuestionChipId } from '../src/components/QuestionChips.tsx';
 import { JUDGE_DEMO_PRESETS } from '../src/components/JudgeDemoBar.tsx';
 import { TRANSLATIONS } from '../src/i18n/translations.ts';
+import { LONGITUDINAL_MALAFFI_COHORT } from '../src/data/longitudinalCohort.ts';
+import {
+  evaluatePatientGraph,
+  resolveNullBiomarkerInLoop,
+  mutatePatientEncounterInLoop,
+  computeDeterministicGraphSignature,
+  mapLongitudinalPatientToScreeningInput,
+} from '../src/lib/diagnosticGraph/loopController.ts';
 
 async function runTests() {
   console.log('========================================================================');
@@ -303,6 +311,217 @@ async function runTests() {
     'RES-18: Phase-2 Modules — Judge Archetypes & Question Chips Invariants (PM-31 / PM-35)',
     demoPresetsConcordant && allDictionaryComplete,
     `5/5 Presets Concordant, ${allQuestionIds.length}/${allQuestionIds.length} Question Chips Validated (Zero-PII & Bilingual)`
+  );
+
+  // 15. RES-19 (Workshop #3 Inception42 Blueprint): Null-Preservation Invariant & Subgroup Equity Audit
+  // a) Null-Preservation Invariant:
+  const nullLabInput: ScreeningInput = {
+    ...baseInput,
+    hasSemenReport: false,
+    semenVolume: null,
+    semenConcentration: null,
+    semenMotility: null,
+    semenMorphology: null,
+  };
+  const nullLabEval = evaluateScreening(nullLabInput);
+  const evidenceIndexNull = computeEvidenceIndex(nullLabInput);
+  const gatesNull = computeGateStatuses(nullLabInput, nullLabEval);
+
+  const fullLabInput: ScreeningInput = {
+    ...baseInput,
+    hasSemenReport: true,
+    semenVolume: 2.5,
+    semenConcentration: 30.0,
+    semenMotility: 55.0,
+    semenMorphology: 5.5,
+  };
+  const evidenceIndexFull = computeEvidenceIndex(fullLabInput);
+
+  const invariantHolds =
+    evidenceIndexNull.domainsPresent === 3 &&
+    evidenceIndexNull.domainsTotal === 4 &&
+    evidenceIndexNull.completenessPercent === 75 &&
+    evidenceIndexNull.isEarlyRiskSignal &&
+    evidenceIndexFull.domainsPresent === 4 &&
+    evidenceIndexFull.completenessPercent === 100 &&
+    !evidenceIndexFull.isEarlyRiskSignal &&
+    gatesNull.some((g) => g.gate === 3 && g.decision === 'FLAG_NULL');
+
+  // b) UCI Benchmark Subgroup Equity & Wilson 95% CI calculation:
+  const benchResult = runUciBenchmark();
+  const subAll = benchResult.subgroups['all'];
+  const sub18_35 = benchResult.subgroups['18-35'];
+  const sub36_50 = benchResult.subgroups['36-50'];
+  const sub51_75 = benchResult.subgroups['51-75'];
+
+  const subgroupEquityHolds =
+    benchResult.testRetestReliabilityIcc === 1.0 &&
+    benchResult.falseReferralBurden === 0.0 &&
+    subAll.falseReferralBurden === 0.0 &&
+    sub18_35.falseReferralBurden === 0.0 &&
+    sub36_50.falseReferralBurden === 0.0 &&
+    sub51_75.falseReferralBurden === 0.0 &&
+    subAll.concordanceRate === 100.0 &&
+    sub18_35.concordanceRate === 100.0 &&
+    sub36_50.concordanceRate === 100.0 &&
+    sub51_75.concordanceRate === 100.0 &&
+    subAll.sensitivity.lower > 0 &&
+    subAll.specificity.lower > 0 &&
+    sub18_35.count > 0 &&
+    sub36_50.count > 0 &&
+    sub51_75.count > 0;
+
+  assert(
+    'RES-19: Workshop #3 — Null Invariant, 5-Gate Trace & Subgroup Equity (ICC=1.000)',
+    invariantHolds && subgroupEquityHolds,
+    `Null Domain (75% Early Signal), Full Domain (100%), ICC=${benchResult.testRetestReliabilityIcc}, 0.0% False Referrals across 3 IFHAS Subgroups`
+  );
+
+  // ==========================================================================
+  // RES-20: Closed-Loop Longitudinal Graph, Technician Blind Spots & Bayesian Loop
+  // ==========================================================================
+  const pt1 = LONGITUDINAL_MALAFFI_COHORT.find((p) => p.patientId === 'MALAFFI-PT-001')!;
+  const pt2 = LONGITUDINAL_MALAFFI_COHORT.find((p) => p.patientId === 'MALAFFI-PT-002')!;
+  const pt3 = LONGITUDINAL_MALAFFI_COHORT.find((p) => p.patientId === 'MALAFFI-PT-003')!;
+  const pt4 = LONGITUDINAL_MALAFFI_COHORT.find((p) => p.patientId === 'MALAFFI-PT-004')!;
+
+  const eval1 = evaluatePatientGraph(pt1);
+  const pt1FalseNormal = eval1.blindSpotSyndromes.some(
+    (s) => s.id === 'SYN_FALSE_NORMAL_SUBFERTILITY' && s.triggered
+  );
+  const pt1OccultDecay = eval1.blindSpotSyndromes.some(
+    (s) => s.id === 'SYN_OCCULT_LONGITUDINAL_DECAY' && s.triggered
+  );
+
+  const eval2 = evaluatePatientGraph(pt2);
+  const pt2PituitaryEscalation = eval2.lifeSafetyEscalations.some(
+    (e) => e.id === 'ESC_OCCULT_PITUITARY_NEUROENDOCRINE' && e.triggered
+  );
+
+  const eval3 = evaluatePatientGraph(pt3);
+  const pt3MaceEscalation = eval3.lifeSafetyEscalations.some(
+    (e) => e.id === 'ESC_SILENT_CARDIOMETABOLIC_MACE_PRECURSOR' && e.triggered
+  );
+
+  const eval4Before = evaluatePatientGraph(pt4);
+  const hasRankedDiscriminators = eval4Before.rankedNextTests.length > 0;
+  const loopResolution = resolveNullBiomarkerInLoop(pt4, 'fshIuL', 18.4);
+  const sertoliBefore = eval4Before.differentialRanking.find(
+    (h) => h.id === 'DDX_PRIMARY_TESTICULAR_SERTOLI_FAILURE'
+  )!.posteriorProbability;
+  const sertoliAfter = loopResolution.newEvaluation.differentialRanking.find(
+    (h) => h.id === 'DDX_PRIMARY_TESTICULAR_SERTOLI_FAILURE'
+  )!.posteriorProbability;
+  const resolutionShiftHolds =
+    sertoliBefore >= 0.38 &&
+    sertoliBefore <= 0.58 &&
+    sertoliAfter > 0.85 &&
+    loopResolution.entropyDeltaBits < 0;
+
+  // Determinism check: two runs on identical input produce identical posteriors
+  const eval1SecondRun = evaluatePatientGraph(pt1);
+  const determinismHolds = eval1.differentialRanking.every(
+    (h, idx) => h.posteriorProbability === eval1SecondRun.differentialRanking[idx].posteriorProbability
+  );
+
+  // Feature #1: Deterministic FNV-1a Hash Signatures Verification
+  const sig1a = computeDeterministicGraphSignature(pt1, eval1);
+  const sig1b = computeDeterministicGraphSignature(pt1, eval1);
+  const signaturesMatch =
+    sig1a.inputHash === sig1b.inputHash &&
+    sig1a.outputHash === sig1b.outputHash &&
+    sig1a.inputHash.length === 8 &&
+    sig1a.outputHash.length === 8;
+
+  // Feature #1: mutatePatientEncounterInLoop ('UPDATE_LATEST')
+  const updateMutation = mutatePatientEncounterInLoop(pt1, 'UPDATE_LATEST', {
+    vitals: { bmi: 34.5 },
+    toggleTrt: true,
+  });
+  const updateHolds =
+    updateMutation.updatedRecord.encounters.length === pt1.encounters.length &&
+    updateMutation.signatures.inputHash !== sig1a.inputHash &&
+    updateMutation.signatures.outputHash.length === 8;
+
+  // Feature #1: mutatePatientEncounterInLoop ('APPEND_FOLLOWUP_90D')
+  const appendMutation = mutatePatientEncounterInLoop(pt1, 'APPEND_FOLLOWUP_90D', {
+    semenLab: {
+      volumeMl: 3.2,
+      concentrationMMl: 45.0,
+      totalMotilityPct: 62,
+      normalMorphologyPct: 7,
+    },
+  });
+  const pt1LatestDate = new Date(pt1.encounters[pt1.encounters.length - 1].dateIso).getTime();
+  const appLatestDate = new Date(
+    appendMutation.updatedRecord.encounters[appendMutation.updatedRecord.encounters.length - 1].dateIso
+  ).getTime();
+  const daysDiff = Math.round((appLatestDate - pt1LatestDate) / (1000 * 60 * 60 * 24));
+  const appendHolds =
+    appendMutation.updatedRecord.encounters.length === pt1.encounters.length + 1 &&
+    daysDiff === 90 &&
+    appendMutation.signatures.inputHash.length === 8;
+
+  // Feature #1: Deterministic mutation signature replay (zero caching invariance)
+  const appendSecondRun = mutatePatientEncounterInLoop(pt1, 'APPEND_FOLLOWUP_90D', {
+    semenLab: {
+      volumeMl: 3.2,
+      concentrationMMl: 45.0,
+      totalMotilityPct: 62,
+      normalMorphologyPct: 7,
+    },
+  });
+  const mutationDeterminismHolds =
+    appendMutation.signatures.inputHash === appendSecondRun.signatures.inputHash &&
+    appendMutation.signatures.outputHash === appendSecondRun.signatures.outputHash;
+
+  // Feature #2: 1-Click Bridge (mapLongitudinalPatientToScreeningInput) verification
+  const mappedPt1 = mapLongitudinalPatientToScreeningInput(pt1);
+  const pt1BridgeValid =
+    mappedPt1.hasSemenReport === true &&
+    mappedPt1.semenVolume === 1.5 &&
+    mappedPt1.semenConcentration === 16.0 &&
+    mappedPt1.semenMotility === 43 &&
+    mappedPt1.semenMorphology === 4 &&
+    mappedPt1.age === 34 &&
+    mappedPt1.steroidsTrt === true;
+  const pt1ScreeningEval = evaluateScreening(mappedPt1);
+  const pt1EvalValid = Boolean(pt1ScreeningEval && pt1ScreeningEval.triage_tier);
+
+  // Patient with semenLab: null (MALAFFI-PT-006)
+  const pt6 = LONGITUDINAL_MALAFFI_COHORT.find((p) => p.patientId === 'MALAFFI-PT-006')!;
+  const mappedPt6 = mapLongitudinalPatientToScreeningInput(pt6);
+  const pt6BridgeValid =
+    mappedPt6.hasSemenReport === false &&
+    mappedPt6.semenVolume === null &&
+    mappedPt6.semenConcentration === null &&
+    mappedPt6.semenMotility === null &&
+    mappedPt6.semenMorphology === null &&
+    mappedPt6.acutePain === true;
+  const pt6ScreeningEval = evaluateScreening(mappedPt6);
+  const pt6EvalValid =
+    Boolean(pt6ScreeningEval && pt6ScreeningEval.triage_tier === 'TIER_1_EMERGENCY');
+
+  const bridgeHolds = pt1BridgeValid && pt1EvalValid && pt6BridgeValid && pt6EvalValid;
+
+  const res20Passed =
+    pt1FalseNormal &&
+    pt1OccultDecay &&
+    pt2PituitaryEscalation &&
+    pt3MaceEscalation &&
+    hasRankedDiscriminators &&
+    resolutionShiftHolds &&
+    determinismHolds &&
+    signaturesMatch &&
+    updateHolds &&
+    appendHolds &&
+    mutationDeterminismHolds &&
+    bridgeHolds;
+
+  assert(
+    'RES-20: Closed-Loop Longitudinal Graph, Technician Blind Spots & Bayesian Loop (v2.0-DAG)',
+    res20Passed,
+    `PT-1 BlindSpot: ${pt1FalseNormal && pt1OccultDecay}, PT-2 Pituitary: ${pt2PituitaryEscalation}, PT-3 MACE: ${pt3MaceEscalation}, Loop ΔSertoli: ${sertoliBefore} -> ${sertoliAfter} (ΔH: ${loopResolution.entropyDeltaBits} bits), FNV Signatures: #${sig1a.inputHash} -> #${sig1a.outputHash}, Mutate(UPDATE, APPEND+90d): PASS, Bridge(PT-001->Eval, PT-006 Null->T1): PASS, ICC=1.000`
   );
 
   console.log('\n========================================================================');

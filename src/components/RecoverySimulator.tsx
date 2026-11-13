@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   TrendingDown,
   Clock,
@@ -81,10 +81,15 @@ export const RecoverySimulator: React.FC<RecoverySimulatorProps> = ({
 
     // Projected semen recovery after 90 days
     const mult = (stopSteroids ? 2.5 : 1.0) * (stopSmoking ? 1.25 : 1.0) * (avoidHeat ? 1.2 : 1.0);
-    const projVol = Math.min(4.5, Number((baselineInput.semenVolume * (avoidHeat ? 1.15 : 1.0)).toFixed(1)));
-    const projConc = Math.min(80.0, Number((baselineInput.semenConcentration * mult).toFixed(1)));
-    const projMot = Math.min(75.0, Number((baselineInput.semenMotility + (stopSmoking ? 15 : 5) + (avoidHeat ? 10 : 0)).toFixed(0)));
-    const projMorph = Math.min(10.0, Number((baselineInput.semenMorphology + (stopSmoking ? 2.0 : 0.5) + (stopSteroids ? 2.5 : 0)).toFixed(1)));
+    const baseVol = baselineInput.semenVolume ?? 2.5;
+    const baseConc = baselineInput.semenConcentration ?? 30.0;
+    const baseMot = baselineInput.semenMotility ?? 50.0;
+    const baseMorph = baselineInput.semenMorphology ?? 5.0;
+
+    const projVol = Math.min(4.5, Number((baseVol * (avoidHeat ? 1.15 : 1.0)).toFixed(1)));
+    const projConc = Math.min(80.0, Number((baseConc * mult).toFixed(1)));
+    const projMot = Math.min(75.0, Number((baseMot + (stopSmoking ? 15 : 5) + (avoidHeat ? 10 : 0)).toFixed(0)));
+    const projMorph = Math.min(10.0, Number((baseMorph + (stopSmoking ? 2.0 : 0.5) + (stopSteroids ? 2.5 : 0)).toFixed(1)));
 
     return {
       ...baselineInput,
@@ -116,6 +121,35 @@ export const RecoverySimulator: React.FC<RecoverySimulatorProps> = ({
   const baselineUrgency = calculateUrgencyScore(baselineEvaluation);
   const simulatedUrgency = calculateUrgencyScore(simulatedEvaluation);
   const urgencyDelta = baselineUrgency - simulatedUrgency;
+
+  // Animated urgency counter with spring/smooth interpolation
+  const [displayedUrgency, setDisplayedUrgency] = useState<number>(simulatedUrgency);
+
+  useEffect(() => {
+    let startTimestamp: number | null = null;
+    const startValue = displayedUrgency;
+    const targetValue = simulatedUrgency;
+    const duration = 400; // ms
+
+    if (startValue === targetValue) return;
+
+    let frameId: number;
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      // easeOutCubic
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(startValue + (targetValue - startValue) * easedProgress);
+      setDisplayedUrgency(current);
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(step);
+      }
+    };
+
+    frameId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameId);
+  }, [simulatedUrgency]);
 
   // Milestone explanations
   const milestones = {
@@ -226,14 +260,14 @@ export const RecoverySimulator: React.FC<RecoverySimulatorProps> = ({
         <div className="space-y-1.5 pt-1">
           <div className="flex justify-between text-[11px] text-slate-400 font-mono">
             <span>{isAr ? 'مؤشر الخطورة الإكلينيكية' : 'Clinical Urgency Score'}</span>
-            <span>
-              {simulatedUrgency} / 100 (Was {baselineUrgency})
+            <span className="font-bold text-emerald-400">
+              {displayedUrgency} / 100 <span className="text-slate-400 font-normal">({isAr ? 'سابقاً' : 'Was'} {baselineUrgency})</span>
             </span>
           </div>
-          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
+          <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700 relative">
             <div
               className="h-full bg-emerald-500 rounded-full motion-safe:transition-all motion-safe:duration-500"
-              style={{ width: `${Math.max(5, simulatedUrgency)}%` }}
+              style={{ width: `${Math.max(5, displayedUrgency)}%` }}
             />
           </div>
         </div>
@@ -404,7 +438,7 @@ export const RecoverySimulator: React.FC<RecoverySimulatorProps> = ({
         <div className="flex items-center justify-between">
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5 text-amber-600" />
-            <span>{isAr ? 'محطات التطور البيولوجي في الخصية' : 'Spermatogenesis Timeline Milestones'}</span>
+            <span>{isAr ? 'محطات التطور البيولوجي في الخصية (74–90 يوماً)' : 'Spermatogenesis Timeline Milestones (74–90d Cycle)'}</span>
           </h4>
 
           {/* Day Tab Switcher */}
@@ -414,9 +448,9 @@ export const RecoverySimulator: React.FC<RecoverySimulatorProps> = ({
                 key={day}
                 type="button"
                 onClick={() => setSelectedMilestone(day)}
-                className={`px-3 py-1 rounded-md transition-colors cursor-pointer ${
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
                   selectedMilestone === day
-                    ? 'bg-emerald-800 text-white font-bold shadow-xs'
+                    ? 'bg-emerald-800 text-white font-bold shadow-xs scale-105'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -426,8 +460,42 @@ export const RecoverySimulator: React.FC<RecoverySimulatorProps> = ({
           </div>
         </div>
 
-        {/* Milestone Detail Card */}
-        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+        {/* 74–90 Day Biological Arc Visualization */}
+        <div className="bg-slate-900 p-3 rounded-xl border border-slate-800 text-center">
+          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1 px-4">
+            <span className={selectedMilestone === 30 ? 'text-emerald-400 font-bold' : ''}>Day 30 (HPG Reboot)</span>
+            <span className={selectedMilestone === 60 ? 'text-emerald-400 font-bold' : ''}>Day 60 (Protamine Condensation)</span>
+            <span className={selectedMilestone === 90 ? 'text-emerald-400 font-bold' : ''}>Day 90 (Full Spermatogenesis 74±4d)</span>
+          </div>
+          <svg viewBox="0 0 300 36" className="w-full max-w-sm mx-auto h-9" aria-hidden="true">
+            {/* Background Arc Track */}
+            <path d="M 20 28 Q 150 -5 280 28" fill="none" stroke="#334155" strokeWidth="4" strokeLinecap="round" />
+            {/* Active Progress Arc */}
+            <path
+              d={
+                selectedMilestone === 30
+                  ? "M 20 28 Q 65 14 100 13"
+                  : selectedMilestone === 60
+                  ? "M 20 28 Q 110 0 190 14"
+                  : "M 20 28 Q 150 -5 280 28"
+              }
+              fill="none"
+              stroke="#10b981"
+              strokeWidth="4"
+              strokeLinecap="round"
+              className="motion-safe:transition-all motion-safe:duration-500"
+            />
+            {/* Day 30 Node */}
+            <circle cx="100" cy="13" r={selectedMilestone === 30 ? "6" : "4"} fill={selectedMilestone >= 30 ? "#10b981" : "#475569"} className="motion-safe:transition-all motion-safe:duration-300" />
+            {/* Day 60 Node */}
+            <circle cx="190" cy="14" r={selectedMilestone === 60 ? "6" : "4"} fill={selectedMilestone >= 60 ? "#10b981" : "#475569"} className="motion-safe:transition-all motion-safe:duration-300" />
+            {/* Day 90 Node */}
+            <circle cx="280" cy="28" r={selectedMilestone === 90 ? "6" : "4"} fill={selectedMilestone >= 90 ? "#10b981" : "#475569"} className="motion-safe:transition-all motion-safe:duration-300" />
+          </svg>
+        </div>
+
+        {/* Milestone Detail Card with Key for Fluid Animation */}
+        <div key={selectedMilestone} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 animate-fade-in">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="font-bold text-slate-900 text-sm">
               {isAr ? currentMilestone.titleAr : currentMilestone.titleEn}
