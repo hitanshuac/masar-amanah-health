@@ -13,6 +13,7 @@
     "test:clinical": "tsx scripts/testHarness.ts",
     "test:compliance": "tsx scripts/complianceScans.ts",
     "test": "npm run test:clinical && npm run test:compliance",
+    "eval:scorecard": "tsx scripts/evalFlywheelAudit.ts",
     "demo:guided": "node scripts/guidedLoopDemo.js"
   },
   "dependencies": {

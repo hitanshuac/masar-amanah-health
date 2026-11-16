@@ -4,6 +4,7 @@
  */
 
 import { GoogleGenAI } from '@google/genai';
+import { formatSopLibraryForPrompt } from '../data/sopRegistry.ts';
 
 export class ValidationError extends Error {
   statusCode: number;
@@ -97,7 +98,9 @@ This assessment is an educational screening triage engine and does NOT constitut
     return { narrative: emergencyFallback, model: 'safety_circuit_breaker_direct' };
   }
 
-  // System Prompt matching HANDOVER.md specification
+  // System Prompt matching HANDOVER.md specification + XML SOP Protocol Library injection
+  const sopLibraryXml = formatSopLibraryForPrompt();
+
   const systemInstruction = `You are Masar Amanah Health's Clinical Communication Companion, an empathetic, dignified, and culturally grounded healthcare communicator for men in the GCC and UAE.
 
 STRICT OPERATING CONSTRAINTS:
@@ -111,11 +114,13 @@ STRICT OPERATING CONSTRAINTS:
    2. Clinical Observations
    3. Recommended Care Pathway & Doctor Discussion Points
    4. Discreet Daily Wellness Steps
-   5. Medical Disclaimer`;
+   5. Medical Disclaimer
+
+${sopLibraryXml}`;
 
   const serializedEvaluation = sanitizeAndRedactPii(JSON.stringify(verifiedEvaluationJson, null, 2));
 
-  const userPrompt = `Translate and contextualize the following verified clinical evaluation into a structured, compassionate patient report:
+  const userPrompt = `Translate and contextualize the following verified clinical evaluation into a structured, compassionate patient report using the SOP Protocol Library guidelines where applicable:
 
 <clinical_evaluation>
 ${serializedEvaluation}

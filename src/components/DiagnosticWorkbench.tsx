@@ -48,7 +48,24 @@ import {
   GitBranch,
   Play,
   Pause,
+  Bot,
+  FileText,
+  Layers,
+  HelpCircle,
+  XCircle,
 } from 'lucide-react';
+import {
+  SOP_REGISTRY,
+  getSopForPatient,
+  stepNumberToSoapKey,
+  soapKeyToStepNumber,
+  SoapStepKey,
+  SOPProtocol,
+} from '../data/sopRegistry';
+import {
+  SopCopilotSidebar,
+  LoggedFact,
+} from './SopCopilotSidebar';
 
 interface PatientDescriptor {
   titleEn: string;
@@ -178,11 +195,16 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
   const [expandedHypothesisId, setExpandedHypothesisId] = useState<string | null>(null);
   const [selectedHypothesisId, setSelectedHypothesisId] = useState<string | null>(null);
   const [convergenceBanner, setConvergenceBanner] = useState<ResolutionConvergenceBanner | null>(null);
+  const [loggedFacts, setLoggedFacts] = useState<LoggedFact[]>([]);
+  const [isCausalDrawerOpen, setIsCausalDrawerOpen] = useState<boolean>(true);
 
   // Active patient record & live evaluation (zero cached results)
   const activeRecord =
     cohort.find((p) => p.patientId === selectedPatientId) || cohort[0];
   const evaluation: ClosedLoopGraphEvaluation = evaluatePatientGraph(activeRecord);
+
+  const activeSoapStepKey: SoapStepKey = stepNumberToSoapKey(activeWorkbenchStep);
+  const activeSop: SOPProtocol = getSopForPatient(activeRecord.patientId);
 
   // Feature #3: Active Selected Hypothesis & Connected Causal Nodes
   const activeHypothesis =
@@ -542,6 +564,98 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
     }
   };
 
+  const handleLogClinicalFact = (
+    fact: string,
+    _category: string,
+    answer: 'YES' | 'NO',
+    stepKey: SoapStepKey
+  ) => {
+    const newFact: LoggedFact = {
+      id: `fact-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      fact,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      answer,
+      stepKey,
+    };
+    setLoggedFacts((prev) => [...prev, newFact]);
+
+    if (fact.includes('sudden onset') || fact.includes('Acute sudden onset')) {
+      setAcutePain(answer === 'YES');
+      triggerMutate('UPDATE_LATEST', { acuteScrotalPain: answer === 'YES' });
+    }
+    if (fact.includes('Grade 3 left varicocele')) {
+      setVaricoceleGrade(answer === 'YES' ? 3 : 0);
+      triggerMutate('UPDATE_LATEST', { varicoceleGrade: answer === 'YES' ? 3 : 0 });
+    }
+    if (fact.includes('5-ARI')) {
+      setIs5Ari(answer === 'YES');
+      triggerMutate('UPDATE_LATEST', { toggle5Ari: answer === 'YES' });
+    }
+    if (fact.includes('exogenous androgens') || fact.includes('anabolic')) {
+      setIsTrt(answer === 'YES');
+      triggerMutate('UPDATE_LATEST', { toggleTrt: answer === 'YES' });
+    }
+  };
+
+  const handleCopilotApplyExpected = () => {
+    handleGuidedNext();
+  };
+
+  const handleCopilotTriggerDeviation = () => {
+    if (activeWorkbenchStep === 3 && isOpenLoop1 && topNullTest) {
+      const normalVal = topNullTest.simulatedIfNormal.valuePreview;
+      handleResolveBiomarker(topNullTest.targetBiomarkerKey, normalVal);
+      handleLogClinicalFact(
+        `Outcome Differs: Normal ${topNullTest.targetBiomarkerKey} (${normalVal} IU/L) injected -> Differential shifted toward Post-Testicular Ductal Obstruction (N46.02).`,
+        'lab',
+        'YES',
+        'A'
+      );
+    } else if (activeWorkbenchStep === 3 && isOpenLoop2) {
+      handleLogClinicalFact(
+        'Outcome Differs: Non-responder at Day +90 -> Karyotype (47,XXY) and Y-microdeletion (AZF) testing indicated for ICSI fast-track.',
+        'intake',
+        'YES',
+        'A'
+      );
+    } else if (activeWorkbenchStep === 1) {
+      handleLogClinicalFact(
+        'Outcome Differs: Abstinence period outside 2–7d window (<48h or >7d) -> 14-day recollection hold indicated.',
+        'intake',
+        'NO',
+        'S'
+      );
+    } else if (activeWorkbenchStep === 2) {
+      handleLogClinicalFact(
+        'Outcome Differs: Delayed liquefaction >60 min / hyperviscosity noted on semen QC.',
+        'lab',
+        'NO',
+        'O'
+      );
+    }
+  };
+
+  const handleCopilotTriggerStuck = () => {
+    handleLogClinicalFact(
+      'Technician requested AI assistance for gate clearance. 3 targeted clinical follow-up questions generated.',
+      'symptom',
+      'YES',
+      activeSoapStepKey
+    );
+  };
+
+  const handleTriggerDeviationLoop1 = (test: typeof topNullTest) => {
+    if (!test) return;
+    const normalVal = test.simulatedIfNormal.valuePreview;
+    handleResolveBiomarker(test.targetBiomarkerKey, normalVal);
+    handleLogClinicalFact(
+      `Outcome Differs: Normal ${test.targetBiomarkerKey} (${normalVal} IU/L) injected -> Differential shifted toward Post-Testicular Ductal Obstruction (N46.02).`,
+      'lab',
+      'YES',
+      'A'
+    );
+  };
+
   const renderMiniSparkline = (points: number[], isSelected: boolean) => {
     if (!points || points.length < 2) return null;
     const min = Math.min(...points);
@@ -761,6 +875,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
             const hasStat = evalPreview.lifeSafetyEscalations.some((e) => e.triggered);
             const hasBlind = evalPreview.blindSpotSyndromes.some((s) => s.triggered);
             const desc = PATIENT_DESCRIPTORS[patient.patientId];
+            const patientSop = getSopForPatient(patient.patientId);
 
             return (
               <button
@@ -778,6 +893,9 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                 <div className="flex items-center gap-1.5 w-full">
                   <span className="font-mono font-bold text-white">{patient.patientId}</span>
                   <span className="text-[10px] text-slate-400">({patient.age}y)</span>
+                  <span className="text-[10px] bg-slate-800 text-emerald-300 px-1 py-0.2 rounded font-mono font-bold">
+                    {patientSop.id}
+                  </span>
                   {desc && renderMiniSparkline(desc.sparkline, isSelected)}
                   {hasStat && (
                     <span className="px-1 py-0.2 rounded bg-rose-600 text-white font-bold text-[9px]">
@@ -791,7 +909,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                   )}
                 </div>
                 {desc && (
-                  <span className={`text-[10px] truncate max-w-[135px] font-normal ${isSelected ? 'text-emerald-300 font-semibold' : 'text-slate-400'}`}>
+                  <span className={`text-[10px] truncate max-w-[140px] font-normal ${isSelected ? 'text-emerald-300 font-semibold' : 'text-slate-400'}`}>
                     {isAr ? desc.titleAr : desc.titleEn}
                   </span>
                 )}
@@ -800,15 +918,39 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
           })}
         </div>
 
-        {/* Row 3: 4-Step Stepper + Open Loops Badge + Master Guided 1-Click CTA */}
+        {/* Active Patient & Active SOP Protocol Status Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 bg-slate-950/90 rounded-xl border border-slate-800 text-xs font-mono">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2 py-0.5 rounded bg-emerald-900/80 text-emerald-300 font-bold border border-emerald-700/60">
+              {activeSop.id}
+            </span>
+            <span className="font-semibold text-white">
+              {isAr ? activeSop.titleAr : activeSop.titleEn}
+            </span>
+            <span className="text-slate-500">•</span>
+            <span className="text-slate-300">
+              {PATIENT_DESCRIPTORS[activeRecord.patientId]
+                ? (isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].titleAr : PATIENT_DESCRIPTORS[activeRecord.patientId].titleEn)
+                : activeRecord.patientId}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-slate-400">{isAr ? 'المرحلة الحالية:' : 'Encounter Phase:'}</span>
+            <span className="px-2.5 py-0.5 rounded-full bg-slate-900 border border-emerald-600/60 text-emerald-300 font-bold">
+              {activeSop.encounterPhase}
+            </span>
+          </div>
+        </div>
+
+        {/* Row 3: 4-Step Stepper (SOAP Framework) + Open Loops Badge + Master Guided 1-Click CTA */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-3 border-t border-slate-800">
-          {/* 4-Step Visual Loop Stepper */}
+          {/* 4-Step Visual Loop Stepper (Mapped to S-O-A-P) */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {[
-              { num: 1, labelEn: '1. Longitudinal Scan', labelAr: '1. المسح الطولي' },
-              { num: 2, labelEn: '2. Causal Root-Tree', labelAr: '2. الجذور والتشخيص' },
-              { num: 3, labelEn: '3. Close Open Loops', labelAr: '3. إغلاق الحلقات' },
-              { num: 4, labelEn: '4. Converged Care Plan', labelAr: '4. خطة الرعاية' },
+              { num: 1, key: 'S', labelEn: '1. S: Subjective Intake', labelAr: '1. س: التقييم الذاتي' },
+              { num: 2, key: 'O', labelEn: '2. O: Objective QC & Labs', labelAr: '2. ع: التقييم الموضوعي' },
+              { num: 3, key: 'A', labelEn: '3. A: Assessment & Differential', labelAr: '3. ت: التقييم التفريقي' },
+              { num: 4, key: 'P', labelEn: '4. P: Plan & +90d Follow-Up', labelAr: '4. خ: خطة الرعاية' },
             ].map((step) => {
               const isActive = activeWorkbenchStep === step.num;
               const isPassed = activeWorkbenchStep > step.num;
@@ -841,7 +983,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                         : 'bg-slate-800 text-slate-400'
                     }`}
                   >
-                    {isPassed ? '✓' : step.num}
+                    {isPassed ? '✓' : step.key}
                   </span>
                   <span>{isAr ? step.labelAr : step.labelEn}</span>
                 </button>
@@ -885,6 +1027,15 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
           </div>
         </div>
       </section>
+
+      {/* =====================================================================
+          2-COLUMN SPLIT WORKSPACE:
+          LEFT: 62% The Clean 4-Step S → O → A → P Clinical Encounter Sheet
+          RIGHT: 38% AI SOP Co-Pilot & Exception Assistant (Sticky)
+         ===================================================================== */}
+      <div className="w-full flex flex-col lg:flex-row gap-6 items-start">
+        {/* LEFT COLUMN (62% Width): SOAP CLINICAL ENCOUNTER SHEET */}
+        <div className="w-full lg:w-[62%] flex flex-col gap-6">
 
       {/* =====================================================================
           STEP 1: Longitudinal Scan & Blind Spots
@@ -1241,6 +1392,67 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                 })}
             </section>
           )}
+
+          {/* Recorded Findings for Step S */}
+          {loggedFacts.filter((f) => f.stepKey === 'S').length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs">
+              <div className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{isAr ? 'الملاحظات السريرية الموثقة في مرحلة الاستقبال (S)' : 'Recorded Intake Findings & Logged Facts (Step S)'}</span>
+              </div>
+              <div className="space-y-1.5">
+                {loggedFacts
+                  .filter((f) => f.stepKey === 'S')
+                  .map((fact) => (
+                    <div key={fact.id} className="text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <span className="text-slate-800">{fact.fact}</span>
+                      <span className="text-[10px] font-mono text-slate-500 ms-2 shrink-0">{fact.timestamp}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* SOP Gate Check Action Bar for S: SUBJECTIVE */}
+          <div className="bg-slate-900 border-2 border-emerald-600 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+            <div>
+              <div className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">
+                {isAr ? 'بوابة التحقق السريري: التقييم الذاتي وتدقيق مرحلة ما قبل التحليل' : 'SOP Gate Check: S · Subjective Intake & Pre-Analytical QC'}
+              </div>
+              <div className="text-sm font-semibold text-white mt-0.5">
+                {isAr
+                  ? 'تحقق من فترة الامتناع (2–7 أيام)، استبعاد علامات الطوارئ، وتدقيق الأدوية المأخوذة'
+                  : 'Verify 2–7d abstinence window, 0ms scrotal mass/torsion screen, and 74-day medication history.'}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  handleLogClinicalFact(
+                    'Intake verified: 2–7 day abstinence confirmed, red flags triaged, 74-day medication history audited.',
+                    'intake',
+                    'YES',
+                    'S'
+                  );
+                  setActiveWorkbenchStep(2);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ring-1 ring-emerald-400"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                <span>{isAr ? '✓ اعتماد التقييم وفترة الامتناع (الانتقال للتقييم الموضوعي) ←' : '✓ Verify Intake & Pre-Analytical QC (2–7d Abstinence) →'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCopilotTriggerDeviation}
+                className="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ring-1 ring-amber-400"
+              >
+                <Zap className="w-4 h-4 text-amber-200" />
+                <span>{isAr ? '⚡ نتيجة مفاجئة / استشارة المساعد' : '⚡ Outcome Differs / Stuck -> Ask AI Co-Pilot'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1249,44 +1461,320 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
          ===================================================================== */}
       {(activeWorkbenchStep === 2 || expertView) && (
         <div className="flex flex-col gap-5 animate-fade-in">
-          <section className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
+          {/* Clean Side-by-Side Table: WHO 6th Semen Parameters & Endocrine Labs */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
               <div>
                 <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded">
-                  STEP 2: CAUSAL ROOT-TREE & DIFFERENTIAL
+                  STAGE 2 · O: OBJECTIVE LABS & QC
                 </span>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mt-1">
-                  <Dna className="w-5 h-5 text-emerald-800" />
-                  {isAr ? 'شجرة التشخيص التفريقي البايزي متعدد التصنيفات (المستوى ب)' : 'Plane B Multi-Label Bayesian Differential'}
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 mt-1 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-emerald-800" />
+                  {isAr ? 'فحص السائل المنوي (WHO 6th) ولوحة الغدد الصماء' : 'WHO 6th Ed Semen Analysis & Endocrine Discriminators'}
                 </h2>
-                <p className="text-xs text-slate-700 mt-1">
+                <p className="text-xs text-slate-600 mt-0.5">
                   {isAr
-                    ? 'حساب احتمالات لوجستية مستقلة لكل فرضية سريرية دون تطبيع سوفت ماكس (قانون 1: الاستقلالية التشخيصية)'
-                    : 'Independent multi-label logistic posteriors without Softmax dilution (Law 1: Null ≠ Zero invariant)'}
+                    ? 'تدقيق معايير منظمة الصحة العالمية والتركيز على مفارقة الفحص السليم الخادعة والمؤشرات الهرمونية المفقودة'
+                    : 'Objective laboratory verification: WHO 6th 4-parameter thresholds, composite TMSC, and missing endocrine discriminators.'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-mono">
-                  <span className="text-slate-600">{isAr ? 'الإنتروبيا:' : 'Joint Entropy:'}</span>{' '}
-                  <span className="font-bold text-slate-900">{evaluation.jointEntropyBits} bits</span>
-                </div>
-                <div className="bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg text-xs font-mono">
-                  <span className="text-emerald-700">{isAr ? 'اليقين:' : 'Certainty:'}</span>{' '}
-                  <span className="font-bold text-emerald-900">{evaluation.diagnosticCertaintyPct}%</span>
-                </div>
+                <span className="text-xs font-mono font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded">
+                  {activeRecord.patientId} · {activeRecord.age}y
+                </span>
               </div>
             </div>
 
-            {/* 6 Bayesian Posterior Bars */}
-            <div className="space-y-3.5">
-              {evaluation.differentialRanking.map((hyp, hIdx) => {
-                const isExpanded = expandedHypothesisId === hyp.id;
-                const isSelected = hyp.id === activeHypothesisId;
-                const pct = Math.round(hyp.posteriorProbability * 100);
+            {/* False-Normal Paradox Alert Banner if applicable (e.g. PT-001 with TMSC 10.32M) */}
+            {currentSeLab &&
+              currentSeLab.volumeMl >= 1.4 &&
+              currentSeLab.concentrationMMl >= 16 &&
+              currentSeLab.totalMotilityPct >= 42 &&
+              currentSeLab.normalMorphologyPct >= 4 &&
+              liveTmsc !== null &&
+              liveTmsc < 20 && (
+                <div className="mb-4 bg-amber-950 text-white border-2 border-amber-500 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-xs font-mono uppercase tracking-wider text-amber-300 font-bold">
+                        {isAr ? 'تنبيه: مفارقة الفحص السليم الخادعة (SYN_FALSE_NORMAL_SUBFERTILITY)' : 'CLINICAL ALERT: FALSE-NORMAL WHO LINE TRAP (SYN_FALSE_NORMAL_SUBFERTILITY)'}
+                      </div>
+                      <div className="text-sm font-bold text-white mt-0.5">
+                        {isAr
+                          ? `كافة مؤشرات فحص السائل المنوي الأربعة تجتاز الحدود الدنيا الفردية، لكن العدد الإجمالي للنطاف المتحركة (TMSC = ${liveTmsc}M < 20M) يقع في نطاق القصور الإنجابي الخفي.`
+                          : `All 4 individual WHO 6th lines pass lower reference limits, but composite Total Motile Sperm Count (TMSC = ${liveTmsc}M < 20M) indicates hidden subfertility.`}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            )}
 
-                const barBg =
-                  pct >= 80
-                    ? 'bg-emerald-600'
+            {/* Side-by-Side Tables Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Table 1: WHO 6th Semen Analysis */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                <div className="bg-slate-100 px-3.5 py-2.5 border-b border-slate-200 font-bold text-xs text-slate-800 flex items-center justify-between">
+                  <span>{isAr ? 'مؤشرات فحص السائل المنوي (WHO 6th)' : 'WHO 6th Edition Semen Analysis'}</span>
+                  <span className="text-[10px] font-mono font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                    {liveTmsc !== null ? `TMSC: ${liveTmsc} M` : 'No Semen Lab'}
+                  </span>
+                </div>
+                <div className="p-3 text-xs">
+                  {currentSeLab ? (
+                    <table className="w-full text-start">
+                      <thead>
+                        <tr className="text-[10px] font-mono text-slate-500 border-b border-slate-200">
+                          <th className="text-start pb-1.5">{isAr ? 'المؤشر' : 'Biomarker'}</th>
+                          <th className="text-end pb-1.5">{isAr ? 'النتيجة' : 'Value'}</th>
+                          <th className="text-end pb-1.5">{isAr ? 'المرجع الطبي' : 'WHO 6th Ref'}</th>
+                          <th className="text-end pb-1.5">{isAr ? 'الحالة' : 'Status'}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200/60 font-mono">
+                        <tr>
+                          <td className="py-1.5 text-slate-700 font-medium">Volume</td>
+                          <td className="py-1.5 text-end font-bold text-slate-900">{currentSeLab.volumeMl} mL</td>
+                          <td className="py-1.5 text-end text-slate-500">≥ 1.4 mL</td>
+                          <td className="py-1.5 text-end">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${currentSeLab.volumeMl >= 1.4 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                              {currentSeLab.volumeMl >= 1.4 ? 'PASS' : 'LOW'}
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-1.5 text-slate-700 font-medium">Concentration</td>
+                          <td className="py-1.5 text-end font-bold text-slate-900">{currentSeLab.concentrationMMl} M/mL</td>
+                          <td className="py-1.5 text-end text-slate-500">≥ 16 M/mL</td>
+                          <td className="py-1.5 text-end">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${currentSeLab.concentrationMMl >= 16 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                              {currentSeLab.concentrationMMl >= 16 ? 'PASS' : 'LOW'}
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-1.5 text-slate-700 font-medium">Total Motility</td>
+                          <td className="py-1.5 text-end font-bold text-slate-900">{currentSeLab.totalMotilityPct}%</td>
+                          <td className="py-1.5 text-end text-slate-500">≥ 42%</td>
+                          <td className="py-1.5 text-end">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${currentSeLab.totalMotilityPct >= 42 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                              {currentSeLab.totalMotilityPct >= 42 ? 'PASS' : 'LOW'}
+                            </span>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-1.5 text-slate-700 font-medium">Normal Morphology</td>
+                          <td className="py-1.5 text-end font-bold text-slate-900">{currentSeLab.normalMorphologyPct}%</td>
+                          <td className="py-1.5 text-end text-slate-500">≥ 4.0%</td>
+                          <td className="py-1.5 text-end">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${currentSeLab.normalMorphologyPct >= 4 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                              {currentSeLab.normalMorphologyPct >= 4 ? 'PASS' : 'LOW'}
+                            </span>
+                          </td>
+                        </tr>
+                        <tr className="bg-slate-100/80 font-bold">
+                          <td className="py-1.5 text-slate-900">{isAr ? 'العدد الفعال (TMSC)' : 'Composite TMSC'}</td>
+                          <td className="py-1.5 text-end text-emerald-800">{liveTmsc} M</td>
+                          <td className="py-1.5 text-end text-slate-600">≥ 20 M</td>
+                          <td className="py-1.5 text-end">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${liveTmsc !== null && liveTmsc >= 20 ? 'bg-emerald-200 text-emerald-900' : 'bg-amber-200 text-amber-900'}`}>
+                              {liveTmsc !== null && liveTmsc >= 20 ? 'OPTIMAL' : 'SUBFERTILE'}
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  ) : (
+                    <div className="p-4 text-slate-500 italic text-center">
+                      {isAr ? 'لم يتم تسجيل تحليل منوي في الزيارة الحالية' : 'No semen lab recorded in current encounter'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Table 2: Endocrine Discriminators */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/50">
+                <div className="bg-slate-100 px-3.5 py-2.5 border-b border-slate-200 font-bold text-xs text-slate-800 flex items-center justify-between">
+                  <span>{isAr ? 'لوحة الغدد الصماء والهرمونات' : 'Endocrine Discriminator Panel'}</span>
+                  <span className="text-[10px] font-mono font-semibold text-slate-600 bg-slate-200 px-2 py-0.5 rounded">
+                    {latestEncounter?.endocrinePanel ? 'Measured' : 'Awaiting Labs'}
+                  </span>
+                </div>
+                <div className="p-3 text-xs">
+                  <table className="w-full text-start">
+                    <thead>
+                      <tr className="text-[10px] font-mono text-slate-500 border-b border-slate-200">
+                        <th className="text-start pb-1.5">{isAr ? 'الهرمون' : 'Hormone'}</th>
+                        <th className="text-end pb-1.5">{isAr ? 'النتيجة' : 'Value'}</th>
+                        <th className="text-end pb-1.5">{isAr ? 'المجال المرجعي' : 'Reference'}</th>
+                        <th className="text-end pb-1.5">{isAr ? 'الحالة' : 'Status'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200/60 font-mono">
+                      {/* Serum FSH */}
+                      <tr>
+                        <td className="py-1.5 text-slate-700 font-medium">Serum FSH</td>
+                        <td className="py-1.5 text-end font-bold">
+                          {fshIuL !== null ? `${fshIuL} IU/L` : <span className="text-amber-800 bg-amber-100 px-1 rounded">NULL</span>}
+                        </td>
+                        <td className="py-1.5 text-end text-slate-500">1.5–12.4 IU/L</td>
+                        <td className="py-1.5 text-end">
+                          {fshIuL !== null ? (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${fshIuL > 12.4 ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {fshIuL > 12.4 ? 'HIGH' : 'NORMAL'}
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              MISSING
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Serum LH */}
+                      <tr>
+                        <td className="py-1.5 text-slate-700 font-medium">Serum LH</td>
+                        <td className="py-1.5 text-end font-bold">
+                          {lhIuL !== null ? `${lhIuL} IU/L` : <span className="text-amber-800 bg-amber-100 px-1 rounded">NULL</span>}
+                        </td>
+                        <td className="py-1.5 text-end text-slate-500">1.7–8.6 IU/L</td>
+                        <td className="py-1.5 text-end">
+                          {lhIuL !== null ? (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${lhIuL > 8.6 ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {lhIuL > 8.6 ? 'HIGH' : 'NORMAL'}
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              MISSING
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Total Testosterone */}
+                      <tr>
+                        <td className="py-1.5 text-slate-700 font-medium">Total Testosterone</td>
+                        <td className="py-1.5 text-end font-bold">
+                          {totalTestosteroneNgDl !== null ? `${totalTestosteroneNgDl} ng/dL` : <span className="text-amber-800 bg-amber-100 px-1 rounded">NULL</span>}
+                        </td>
+                        <td className="py-1.5 text-end text-slate-500">300–1000 ng/dL</td>
+                        <td className="py-1.5 text-end">
+                          {totalTestosteroneNgDl !== null ? (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${totalTestosteroneNgDl < 300 ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {totalTestosteroneNgDl < 300 ? 'LOW' : 'NORMAL'}
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              MISSING
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Serum Prolactin */}
+                      <tr>
+                        <td className="py-1.5 text-slate-700 font-medium">Serum Prolactin</td>
+                        <td className="py-1.5 text-end font-bold">
+                          {prolactinNgMl !== null ? `${prolactinNgMl} ng/mL` : <span className="text-amber-800 bg-amber-100 px-1 rounded">NULL</span>}
+                        </td>
+                        <td className="py-1.5 text-end text-slate-500">4.0–15.2 ng/mL</td>
+                        <td className="py-1.5 text-end">
+                          {prolactinNgMl !== null ? (
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${prolactinNgMl > 15.2 ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {prolactinNgMl > 15.2 ? 'HIGH' : 'NORMAL'}
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              MISSING
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Serum Estradiol */}
+                      <tr>
+                        <td className="py-1.5 text-slate-700 font-medium">Serum Estradiol (E2)</td>
+                        <td className="py-1.5 text-end font-bold">
+                          {estradiolPgMl !== null ? `${estradiolPgMl} pg/mL` : <span className="text-amber-800 bg-amber-100 px-1 rounded">NULL</span>}
+                        </td>
+                        <td className="py-1.5 text-end text-slate-500">10–40 pg/mL</td>
+                        <td className="py-1.5 text-end">
+                          {estradiolPgMl !== null ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              NORMAL
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                              MISSING
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsible Deep Bayesian Causal Graph & 6-Branch Differential Drawer */}
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <button
+              type="button"
+              onClick={() => setIsCausalDrawerOpen(!isCausalDrawerOpen)}
+              className="w-full flex items-center justify-between p-4 bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Dna className="w-5 h-5 text-emerald-400" />
+                <span className="font-bold text-sm">
+                  {isAr
+                    ? '🔬 استعراض شجرة الجذور السببية البايزية (مخطط SVG رباعي الطبقات و 6 فروع تفريقية)'
+                    : '🔬 View Deep Bayesian Causal Graph (4-Layer SVG Tree & 6-Branch Differential)'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-emerald-300 bg-slate-800 px-2.5 py-1 rounded border border-slate-700">
+                  Entropy: {evaluation.jointEntropyBits} bits · Certainty: {evaluation.diagnosticCertaintyPct}%
+                </span>
+                {isCausalDrawerOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+              </div>
+            </button>
+
+            {isCausalDrawerOpen && (
+              <div className="p-5 border-t border-slate-200 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-slate-100 pb-3">
+                  <div>
+                    <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded">
+                      STEP 2: CAUSAL ROOT-TREE & DIFFERENTIAL
+                    </span>
+                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mt-1">
+                      <Dna className="w-5 h-5 text-emerald-800" />
+                      {isAr ? 'شجرة التشخيص التفريقي البايزي متعدد التصنيفات (المستوى ب)' : 'Plane B Multi-Label Bayesian Differential'}
+                    </h2>
+                    <p className="text-xs text-slate-700 mt-1">
+                      {isAr
+                        ? 'حساب احتمالات لوجستية مستقلة لكل فرضية سريرية دون تطبيع سوفت ماكس (قانون 1: الاستقلالية التشخيصية)'
+                        : 'Independent multi-label logistic posteriors without Softmax dilution (Law 1: Null ≠ Zero invariant)'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-mono">
+                      <span className="text-slate-600">{isAr ? 'الإنتروبيا:' : 'Joint Entropy:'}</span>{' '}
+                      <span className="font-bold text-slate-900">{evaluation.jointEntropyBits} bits</span>
+                    </div>
+                    <div className="bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg text-xs font-mono">
+                      <span className="text-emerald-700">{isAr ? 'اليقين:' : 'Certainty:'}</span>{' '}
+                      <span className="font-bold text-emerald-900">{evaluation.diagnosticCertaintyPct}%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6 Bayesian Posterior Bars */}
+                <div className="space-y-3.5">
+                  {evaluation.differentialRanking.map((hyp, hIdx) => {
+                    const isExpanded = expandedHypothesisId === hyp.id;
+                    const isSelected = hyp.id === activeHypothesisId;
+                    const pct = Math.round(hyp.posteriorProbability * 100);
+
+                    const barBg =
+                      pct >= 80
+                        ? 'bg-emerald-600'
                     : pct >= 38
                     ? 'bg-amber-500'
                     : 'bg-slate-400';
@@ -1869,7 +2357,70 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                 </div>
               </div>
             )}
-          </section>
+              </div>
+            )}
+          </div>
+
+          {/* Recorded Findings for Step O */}
+          {loggedFacts.filter((f) => f.stepKey === 'O').length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs">
+              <div className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{isAr ? 'الملاحظات السريرية الموثقة في مرحلة الفحوصات (O)' : 'Recorded Objective Findings & Logged Facts (Step O)'}</span>
+              </div>
+              <div className="space-y-1.5">
+                {loggedFacts
+                  .filter((f) => f.stepKey === 'O')
+                  .map((fact) => (
+                    <div key={fact.id} className="text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <span className="text-slate-800">{fact.fact}</span>
+                      <span className="text-[10px] font-mono text-slate-500 ms-2 shrink-0">{fact.timestamp}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* SOP Gate Check Action Bar for O: OBJECTIVE */}
+          <div className="bg-slate-900 border-2 border-emerald-600 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+            <div>
+              <div className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">
+                {isAr ? 'بوابة التحقق السريري: التقييم الموضوعي والفحوصات المخبرية' : 'SOP Gate Check: O · Objective QC & Labs'}
+              </div>
+              <div className="text-sm font-semibold text-white mt-0.5">
+                {isAr
+                  ? 'تأكيد نتائج منظمة الصحة العالمية وتحديد حالة الفحوصات الهرمونية المفقودة قبل التقييم'
+                  : 'Confirm WHO 6th semen parameters, flag False-Normal paradox, and identify NULL missing endocrine labs.'}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  handleLogClinicalFact(
+                    `Objective verification complete: Semen TMSC = ${liveTmsc ?? 'N/A'} M, endocrine panel status audited.`,
+                    'lab',
+                    'YES',
+                    'O'
+                  );
+                  setActiveWorkbenchStep(3);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ring-1 ring-emerald-400"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                <span>{isAr ? '✓ تأكيد المعايير وحالة الفحوصات (الانتقال للتقييم التفريقي) ←' : '✓ Confirm WHO Parameters & Missing Lab Status (Advance to Assessment) →'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCopilotTriggerDeviation}
+                className="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ring-1 ring-amber-400"
+              >
+                <Zap className="w-4 h-4 text-amber-200" />
+                <span>{isAr ? '⚡ نتيجة مفاجئة / استشارة المساعد' : '⚡ Outcome Differs / Stuck -> Ask AI Co-Pilot'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2004,8 +2555,9 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                         </p>
                       </div>
 
-                      {/* 1-Click Resolvers */}
-                      <div className="flex flex-wrap items-center gap-2">
+                      {/* 1-Click Path A vs Path B Resolvers */}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                        {/* Path A: Predicted Outcome */}
                         <button
                           type="button"
                           data-testid={`btn-simulate-abnormal-${topNullTest.testId}`}
@@ -2015,23 +2567,29 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                               topNullTest.simulatedIfAbnormal.valuePreview
                             )
                           }
-                          className="px-3 py-2 text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white rounded-lg transition-colors cursor-pointer"
+                          className="flex-1 px-4 py-3 text-xs font-bold bg-emerald-700 hover:bg-emerald-600 text-white rounded-xl transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 ring-1 ring-emerald-500"
                         >
-                          ⚡ {isAr ? 'محاكاة نتيجة غير طبيعية:' : 'Simulate Abnormal:'} ({topNullTest.simulatedIfAbnormal.valuePreview})
+                          <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                          <span>
+                            {isAr
+                              ? `✓ المسار أ (المتوقع): حقن فحص ${topNullTest.targetBiomarkerKey} مرتفع (${topNullTest.simulatedIfAbnormal.valuePreview} IU/L) -> تأكيد القصور الخصوي 94.2%`
+                              : `✓ Inject Predicted Lab (High FSH = ${topNullTest.simulatedIfAbnormal.valuePreview} IU/L -> Confirms Primary Testicular Failure 94.2%)`}
+                          </span>
                         </button>
 
+                        {/* Path B: Unexpected Outcome AI Prompt Injection */}
                         <button
                           type="button"
                           data-testid={`btn-simulate-normal-${topNullTest.testId}`}
-                          onClick={() =>
-                            handleResolveBiomarker(
-                              topNullTest.targetBiomarkerKey,
-                              topNullTest.simulatedIfNormal.valuePreview
-                            )
-                          }
-                          className="px-3 py-2 text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg transition-colors cursor-pointer"
+                          onClick={() => handleTriggerDeviationLoop1(topNullTest)}
+                          className="flex-1 px-4 py-3 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2 ring-1 ring-amber-400"
                         >
-                          ✓ {isAr ? 'محاكاة نتيجة طبيعية:' : 'Simulate Normal:'} ({topNullTest.simulatedIfNormal.valuePreview})
+                          <Zap className="w-4 h-4 text-amber-200 shrink-0" />
+                          <span>
+                            {isAr
+                              ? `⚡ المسار ب (المفاجئ): ماذا لو كان ${topNullTest.targetBiomarkerKey} طبيعياً (${topNullTest.simulatedIfNormal.valuePreview} IU/L)؟ -> تحول للمساعد الذكي`
+                              : `⚡ Outcome Differs: What if FSH is NORMAL (${topNullTest.simulatedIfNormal.valuePreview} IU/L)? -> Pivot via AI Co-Pilot`}
+                          </span>
                         </button>
                       </div>
 
@@ -2108,9 +2666,20 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                 </div>
               </div>
 
-              {/* Card B — Open Loop #2: Periodic +90d Follow-Up Loop Closure */}
+              {/* Card B — Open Loop #2: Scheduled +90-Day Spermatogenic Cycle Follow-Up */}
               <div className="bg-white border-2 border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
                 <div>
+                  {/* Time Horizon Header Badge */}
+                  <div className="flex items-center justify-between gap-2 mb-2 bg-indigo-950/20 px-3 py-1.5 rounded-lg border border-indigo-200">
+                    <span className="font-bold text-xs text-indigo-900 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-indigo-700" />
+                      🗓️ +90 DAYS LATER
+                    </span>
+                    <span className="text-[10px] text-indigo-800 font-mono font-semibold">
+                      {isAr ? 'دورة تكوين النطاف (74-90 يوماً)' : 'Spermatogenic Cycle (74–90d)'}
+                    </span>
+                  </div>
+
                   <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
                     <div className="flex items-center gap-2">
                       <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">
@@ -2163,30 +2732,55 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                       </div>
                     </div>
 
-                    {/* 1-Click Action to Close Loop #2 */}
-                    <button
-                      type="button"
-                      data-testid="btn-append-followup"
-                      onClick={() => {
-                        triggerMutate('APPEND_FOLLOWUP_90D');
-                        setFollowupAppendedPatients((prev) => ({
-                          ...prev,
-                          [activeRecord.patientId]: true,
-                        }));
-                      }}
-                      className={`w-full py-2.5 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
-                        isFollowupAppended
-                          ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'
-                          : 'bg-emerald-800 hover:bg-emerald-700 text-white'
-                      }`}
-                    >
-                      <PlusCircle className="w-4 h-4" />
-                      <span>
-                        {isFollowupAppended
-                          ? (isAr ? '+ تسجيل زيارة متابعة إضافية (+90 يوم)' : '+ Append Additional +90d Follow-Up')
-                          : (isAr ? 'إغلاق الحلقة الدورية: تسجيل زيارة متابعة (+90 يوم)' : 'Close Periodic Loop: Log +90d Follow-Up Encounter')}
-                      </span>
-                    </button>
+                    {/* 1-Click Path A vs Path B for Loop #2 */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                      {/* Path A: Predicted Outcome */}
+                      <button
+                        type="button"
+                        data-testid="btn-append-followup"
+                        onClick={() => {
+                          triggerMutate('APPEND_FOLLOWUP_90D');
+                          setFollowupAppendedPatients((prev) => ({
+                            ...prev,
+                            [activeRecord.patientId]: true,
+                          }));
+                          handleLogClinicalFact(
+                            'Verified +90-day spermatogenic follow-up encounter logged into longitudinal chart.',
+                            'intake',
+                            'YES',
+                            'A'
+                          );
+                        }}
+                        className={`flex-1 py-2.5 px-4 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
+                          isFollowupAppended
+                            ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'
+                            : 'bg-emerald-800 hover:bg-emerald-700 text-white'
+                        }`}
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
+                        <span>
+                          {isFollowupAppended
+                            ? (isAr ? '+ تسجيل زيارة متابعة إضافية (+90 يوم)' : '+ Append Additional +90d Follow-Up')
+                            : (isAr ? '✓ المسار أ (المتوقع): تأكيد زيارة المتابعة (+90 يوم)' : '✓ Verify +90d Return Visit')}
+                        </span>
+                      </button>
+
+                      {/* Path B: Unexpected Outcome AI Prompt Injection */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCopilotTriggerDeviation();
+                        }}
+                        className="flex-1 py-2.5 px-4 text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ring-1 ring-amber-400"
+                      >
+                        <Zap className="w-4 h-4 text-amber-200 shrink-0" />
+                        <span>
+                          {isAr
+                            ? '⚡ المسار ب (المفاجئ): عدم استجابة بعد 90 يوماً -> استشارة المساعد'
+                            : '⚡ Outcome Differs: +90d Non-Responder -> Ask AI Co-Pilot'}
+                        </span>
+                      </button>
+                    </div>
 
                     {onBridgeToCarePlan && (
                       <button
@@ -2810,6 +3404,66 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
               </div>
             </div>
           </div>
+
+          {/* Recorded Findings for Step A */}
+          {loggedFacts.filter((f) => f.stepKey === 'A').length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs">
+              <div className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{isAr ? 'الملاحظات السريرية الموثقة في مرحلة التقييم (A)' : 'Recorded Assessment Findings & Logged Facts (Step A)'}</span>
+              </div>
+              <div className="space-y-1.5">
+                {loggedFacts
+                  .filter((f) => f.stepKey === 'A')
+                  .map((fact) => (
+                    <div key={fact.id} className="text-xs p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <span className="text-slate-800">{fact.fact}</span>
+                      <span className="text-[10px] font-mono text-slate-500 ms-2 shrink-0">{fact.timestamp}</span>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* SOP Gate Check Action Bar for A: ASSESSMENT */}
+          <div className="bg-slate-900 border-2 border-emerald-600 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+            <div>
+              <div className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">
+                {isAr ? 'بوابة التحقق السريري: التقييم التفريقي وحسم الحلقات المفتوحة' : 'SOP Gate Check: A · Assessment & Differential'}
+              </div>
+              <div className="text-sm font-semibold text-white mt-0.5">
+                {isAr
+                  ? 'إغلاق الفجوات المخبرية المفقودة وتأكيد زيارة المتابعة الدورية لاعتماد خطة الرعاية'
+                  : 'Close NULL discriminator loops and confirm periodic follow-up to lock Bayesian posterior.'}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  handleGuidedNext();
+                }}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ring-1 ring-emerald-400"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                <span>
+                  {openLoopsCount === 0
+                    ? (isAr ? 'الانتقال إلى خطة الرعاية المتكاملة (الخطوة 4) ←' : 'Advance to Converged Care Plan (Step 4) →')
+                    : isOpenLoop1
+                    ? (isAr ? '⚡ إغلاق الحلقة 1: حسم الفحص المخبري المفقود ←' : '⚡ 1-Click Resolve Top Lab (Loop #1) →')
+                    : (isAr ? '⚡ إغلاق الحلقة 2: تسجيل زيارة المتابعة (+90 يوم) ←' : '⚡ 1-Click Log +90d Follow-Up (Loop #2) →')}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCopilotTriggerDeviation}
+                className="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ring-1 ring-amber-400"
+              >
+                <Zap className="w-4 h-4 text-amber-200" />
+                <span>{isAr ? '⚡ نتيجة مفاجئة / استشارة المساعد' : '⚡ Outcome Differs / Stuck -> Ask AI Co-Pilot'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2866,6 +3520,25 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
           )}
         </div>
       )}
+        </div>
+
+        {/* RIGHT COLUMN (38% Width, Sticky): AI SOP CO-PILOT & EXCEPTION ASSISTANT */}
+        <div className="w-full lg:w-[38%] sticky top-4">
+          <SopCopilotSidebar
+            language={language}
+            patientId={activeRecord.patientId}
+            patientToken={activeRecord.pseudonymToken}
+            activeSoapStep={activeSoapStepKey}
+            activeSop={activeSop}
+            isStepReadyToAdvance={openLoopsCount === 0 || activeWorkbenchStep < 3}
+            onApplyExpectedStep={handleCopilotApplyExpected}
+            onTriggerOutcomeDiffers={handleCopilotTriggerDeviation}
+            onTriggerStuck={handleCopilotTriggerStuck}
+            onLogClinicalFact={handleLogClinicalFact}
+            loggedFacts={loggedFacts}
+          />
+        </div>
+      </div>
 
       {/* Floating Clinical Narrator Toast for Guided Walkthrough */}
       {autoPlayNarrative && (

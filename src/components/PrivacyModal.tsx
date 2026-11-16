@@ -21,7 +21,7 @@ export const PrivacyModal: React.FC<PrivacyModalProps> = ({ isOpen, onClose, lan
   const isAr = language === 'ar';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/85 transition-opacity animate-fade-in">
       <div
         className="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-slate-100 relative overflow-hidden"
         dir={isAr ? 'rtl' : 'ltr'}

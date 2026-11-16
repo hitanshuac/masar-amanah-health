@@ -31,7 +31,7 @@ export const SafetyCircuitBreakerModal: React.FC<SafetyCircuitBreakerModalProps>
   const emergencyHospitals = ABU_DHABI_HEALTH_DIRECTORY.EMERGENCY;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 animate-fade-in">
       <div
         className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border-2 border-rose-500 relative overflow-hidden"
         dir={isAr ? 'rtl' : 'ltr'}
