@@ -48,6 +48,10 @@ import { QuestionChips } from './QuestionChips.tsx';
 import { AgentTraceGraph } from './AgentTraceGraph.tsx';
 import { computeGateStatuses, computeEvidenceIndex } from '../lib/clinicalEngine.ts';
 
+const TransferDispatchModal = React.lazy(() =>
+  import('./TransferDispatchModal.tsx').then((m) => ({ default: m.TransferDispatchModal }))
+);
+
 interface Step4ResultsProps {
   evaluation: ClinicalEvaluationResult;
   input: ScreeningInput;
@@ -84,6 +88,68 @@ export const Step4Results: React.FC<Step4ResultsProps> = ({
   const [showCalculationTable, setShowCalculationTable] = useState(true);
   const [copied, setCopied] = useState(false);
   const [activeSubgroup, setActiveSubgroup] = useState<'all' | '18-35' | '36-50' | '51-75'>('all');
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+
+  const effectiveRecord: LongitudinalPatientRecord = bridgedGraphContext?.record ?? {
+    patientId: 'MALAFFI-PT-001',
+    pseudonymToken: 'MALAFFI-PT-001-ALPHA',
+    age: 32,
+    ifhasBracket: '18-35',
+    primaryComplaintEn: 'Subfertile Screening Workup',
+    primaryComplaintAr: 'فحص الخصوبة الأولي الشامل',
+    encounters: [
+      {
+        encounterId: 'ENC-001',
+        dateIso: new Date().toISOString(),
+        clinicalSetting: 'PRIMARY_CARE',
+        vitals: { bmi: input.bmi, weightKg: input.weightKg, restingHrBpm: 72, sleepHoursAvg: 7, hba1cPct: 5.4 },
+        semenLab: null,
+        endocrinePanel: null,
+        medications: [],
+        clinicalFlags: {
+          acuteScrotalPain: input.acutePain,
+          painlessTesticularMass: input.painlessLump,
+          varicoceleGrade: input.varicocele ? 2 : 0,
+          cryptorchidismHistory: input.undescendedTesticle,
+          mumpsOrchitisHistory: false,
+          sittingHoursPerDay: 4,
+          frequentThermalExposure: false,
+          tobaccoUsage: 'none',
+        },
+      },
+    ],
+  };
+
+  const effectiveEvaluation: ClosedLoopGraphEvaluation = bridgedGraphContext?.graphEvaluation ?? {
+    patientId: effectiveRecord.patientId,
+    encounterCount: 1,
+    evaluatedAtIso: new Date().toISOString(),
+    algorithmVersion: 'v2.0-BAYESIAN-DAG-WHO6-AUA-UAE',
+    signals: [],
+    blindSpotSyndromes: [],
+    lifeSafetyEscalations: [
+      {
+        id: 'STAT-TORSION',
+        titleEn: 'Acute Scrotal Pain Emergency',
+        titleAr: 'طوارئ ألم الصفن الحاد',
+        triggered: input.acutePain,
+        probability: input.acutePain ? 0.99 : 0.01,
+        icd10Code: 'N44.0',
+        snomedCode: '27602005',
+        rationaleEn: 'Acute pain <24h requires immediate surgical evaluation',
+        rationaleAr: 'ألم حاد أقل من 24 ساعة يتطلب تدخلاً جراحياً فورياً',
+        urgentActionEn: 'STAT Transfer to SSMC / CCAD Urology',
+        urgentActionAr: 'تحويل فوري لطوارئ المسالك في مستشفى شخبوط أو كليفلاند',
+        requiredStatLabs: [],
+      },
+    ],
+    differentialRanking: [],
+    jointEntropyBits: 0,
+    maxPossibleEntropyBits: 2.32,
+    diagnosticCertaintyPct: 92.5,
+    loopStatus: 'CONVERGED',
+    rankedNextTests: [],
+  };
 
   // Compute 5-Gate status and Evidence-Weighted Confidence Index
   const gates = computeGateStatuses(input, evaluation);
@@ -526,8 +592,8 @@ export const Step4Results: React.FC<Step4ResultsProps> = ({
                 <Stethoscope className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span className="font-bold">
                   {isAr
-                    ? 'وضع رفيق الطبيب السريري: متوافق مع معايير HL7 FHIR R4 ودليل DECIDE-AI'
-                    : 'Clinician Companion View: HL7 FHIR R4 & DECIDE-AI Guideline Ready'}
+                    ? 'د. مريم تبقى المسؤولة عن كل قرار سريري: حوكمة خماسية البوابات وفق معيار DECIDE-AI وحزمة HL7 FHIR R4'
+                    : 'Dr. Mariam Stays in Charge of Every Clinical Decision (5-Gate DECIDE-AI Governance & HL7 FHIR R4)'}
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold border border-emerald-300">
                   {evidenceIndex.completenessPercent}% Evidence
@@ -535,8 +601,8 @@ export const Step4Results: React.FC<Step4ResultsProps> = ({
               </div>
               <p className="text-slate-600 text-[11px] leading-relaxed">
                 {isAr
-                  ? 'تقييم سريري قطعي متكامل وفق معايير منظمة الصحة العالمية (الإصدار السادس)، متوافق مع منظومة ملفي (Malaffi HIE) ودليل DECIDE-AI لاتخاذ القرارات السريرية.'
-                  : 'Deterministic clinical evaluation mapped to WHO 6th Edition, Abu Dhabi Malaffi network, and DECIDE-AI decision-support standards.'}
+                  ? 'تقييم سريري قطعي متكامل وفق معايير منظمة الصحة العالمية (الإصدار السادس)، متوافق مع منظومة ملفي (Malaffi HIE) ودليل DECIDE-AI؛ د. مريم تحتفظ بالقرار السريري الكامل.'
+                  : 'Deterministic clinical evaluation mapped to WHO 6th Edition, Abu Dhabi Malaffi network, and DECIDE-AI standards — Dr. Mariam stays in charge of every clinical decision.'}
               </p>
               <div className="pt-1 flex flex-wrap gap-2">
                 <button
@@ -546,6 +612,16 @@ export const Step4Results: React.FC<Step4ResultsProps> = ({
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Export HL7 FHIR R4 Bundle</span>
+                </button>
+
+                <button
+                  type="button"
+                  data-testid="btn-step4-transfer-dispatch"
+                  onClick={() => setIsTransferModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>{isAr ? '🚑 إحالة ونقل سريري للمستشفيات' : '🚑 Outbound Hospital Transfer & Referral Dispatch'}</span>
                 </button>
               </div>
             </div>
@@ -1312,6 +1388,20 @@ export const Step4Results: React.FC<Step4ResultsProps> = ({
           <span>{t.restartSession} (Wipe Memory)</span>
         </button>
       </div>
+
+      {/* Outbound Hospital Transfer & Referral Dispatch Modal */}
+      {isTransferModalOpen && (
+        <React.Suspense fallback={null}>
+          <TransferDispatchModal
+            isOpen={isTransferModalOpen}
+            onClose={() => setIsTransferModalOpen(false)}
+            record={effectiveRecord}
+            evaluation={effectiveEvaluation}
+            language={language}
+            onJumpToStep={onReturnToWorkbench ? () => onReturnToWorkbench() : undefined}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 };

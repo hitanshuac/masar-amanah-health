@@ -374,6 +374,7 @@ This screening report is educational and does not constitute a formal diagnosis.
               onStart={() => setCurrentStep(1)}
               language={language}
               onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
+              onOnboardWalkIn={() => setPlatformMode('WORKBENCH')}
             />
           )}
 

@@ -53,6 +53,10 @@ import {
   Layers,
   HelpCircle,
   XCircle,
+  Building2,
+  Lock,
+  Unlock,
+  AlertOctagon,
 } from 'lucide-react';
 import {
   SOP_REGISTRY,
@@ -66,8 +70,12 @@ import {
   SopCopilotSidebar,
   LoggedFact,
 } from './SopCopilotSidebar';
+import { NewPatientOnboardingModal } from './NewPatientOnboardingModal';
+import { TransferDispatchModal } from './TransferDispatchModal';
 
 interface PatientDescriptor {
+  nameEn: string;
+  nameAr: string;
   titleEn: string;
   titleAr: string;
   paradoxEn: string;
@@ -75,10 +83,16 @@ interface PatientDescriptor {
   sparkline: number[];
   sahatnaSummaryEn: string;
   sahatnaSummaryAr: string;
+  painEn: string;
+  painAr: string;
+  magicEn: string;
+  magicAr: string;
 }
 
 const PATIENT_DESCRIPTORS: Record<string, PatientDescriptor> = {
   'MALAFFI-PT-001': {
+    nameEn: 'Khaled, 32y',
+    nameAr: 'خالد، 32 سنة',
     titleEn: 'Subfertile "Normal" Trap',
     titleAr: 'فخ النتيجة السليمة ظاهرياً',
     paradoxEn: 'TMSC 10.32M < 20M threshold',
@@ -86,8 +100,14 @@ const PATIENT_DESCRIPTORS: Record<string, PatientDescriptor> = {
     sparkline: [12.4, 11.2, 10.32],
     sahatnaSummaryEn: 'HR 68 bpm · Sleep 7.2h · Sedentary 8.5h',
     sahatnaSummaryAr: 'النبض 68 · النوم 7.2 س · الجلوس 8.5 س',
+    painEn: 'Without Masar Amanah: Stamped "Normal" under legacy single-line cutoffs despite composite TMSC 10.32M (<20M threshold) and silent cardiometabolic HbA1c/HR drift; swipes away generic SMS and delays care 2–3 years until irreversible vascular/fertility decline.',
+    painAr: 'بدون مسار أمانة: تُصنف نتائجه كـ "طبيعية" ظاهرياً رغم أن العدد الكلي المتحرك 10.32 مليون فقط (أقل من عتبة 20M) مع تدهور قلبي استقلابي صامت؛ يتجاهل الرسائل النصية العامة ويتأخر علاجه 2-3 سنوات.',
+    magicEn: 'With Masar Amanah: Dual-plane screening flags subfertility trap + IFHAS MACE precursor in 1 tap, routing Khaled directly to Dr. Mariam with actionable lifestyle & cardiology loop closure today.',
+    magicAr: 'مع مسار أمانة: فحص مزدوج يكتشف فخ العقم الخفي ومؤشر الموت القلبي المبكر بنقرة واحدة، موجهاً خالد مباشرة إلى د. مريم لبدء خطة وقائية متكاملة فوراً.',
   },
   'MALAFFI-PT-002': {
+    nameEn: 'Omar, 38y',
+    nameAr: 'عمر، 38 سنة',
     titleEn: 'TRT Iatrogenic Shutdown',
     titleAr: 'تثبيط الهرمونات الدوائي (TRT)',
     paradoxEn: 'Exogenous T → HPG axis shutdown',
@@ -95,8 +115,14 @@ const PATIENT_DESCRIPTORS: Record<string, PatientDescriptor> = {
     sparkline: [45.0, 18.0, 0.0],
     sahatnaSummaryEn: 'HR 76 bpm · High Muscle Mass · TRT Active',
     sahatnaSummaryAr: 'النبض 76 · كتلة عضلية عالية · منشطات نشطة',
+    painEn: 'Without Masar Amanah: Gym-prescribed TRT suppresses HPG axis to azoospermia (TMSC 0.0M) while masking potential prolactinoma; referred to generic clinic with months of delay and permanent testicular atrophy risk.',
+    painAr: 'بدون مسار أمانة: استخدام التستوستيرون الرياضي يوقف المحور النخامي مسبباً انعدام النطاف (0.0M) مع إخفاء ورم برولاكتيني محتمل؛ يحال لمراكز عامة مع تأخير أشهر وخطر ضمور دائم.',
+    magicEn: 'With Masar Amanah: Flags iatrogenic shutdown vs. pituitary adenoma instantly, giving Dr. Mariam a structured endocrine washout protocol and salvage pathway in 1 tap.',
+    magicAr: 'مع مسار أمانة: تشخيص فوري يفرق بين التثبيط الدوائي والورم النخامي، مما يمنح د. مريم بروتوكولاً دقيقاً لغسيل الهرمونات واستعادة الخصوبة بنقرة واحدة.',
   },
   'MALAFFI-PT-003': {
+    nameEn: 'Saeed, 41y',
+    nameAr: 'سعيد، 41 سنة',
     titleEn: 'Metabolic Hypogonadism',
     titleAr: 'عقم متلازمة التمثيل الغذائي',
     paradoxEn: 'BMI 34.2 + Adipose Aromatase T/E2 < 10',
@@ -104,8 +130,14 @@ const PATIENT_DESCRIPTORS: Record<string, PatientDescriptor> = {
     sparkline: [28.0, 22.0, 15.4],
     sahatnaSummaryEn: 'HR 82 bpm · HbA1c 6.8% · High Visceral Adiposity',
     sahatnaSummaryAr: 'النبض 82 · السكر التراكمي 6.8% · دهون حشوية',
+    painEn: 'Without Masar Amanah: BMI 34.2 with severe aromatization (T/E2 < 10) treated with ineffective empiric supplements while metabolic hypogonadism worsens over 3 years without metabolic-endocrine co-management.',
+    painAr: 'بدون مسار أمانة: سمنة مفرطة (BMI 34.2) وفرط تحول هرموني يُعالج بمكملات عشوائية عقيمة، بينما يتفاقم قصور الغدد التناسلية على مدى 3 سنوات دون ربط استقلابي.',
+    magicEn: 'With Masar Amanah: Identifies metabolic aromatization phenotype in 1 tap, recommending aromatase inhibitor evaluation and targeted weight-metabolic pathway under Dr. Mariam.',
+    magicAr: 'مع مسار أمانة: يحدد النمط الظاهري للتحول الهرموني بنقرة واحدة، موصياً بمثبطات الأروماتاز ومسار استقلابي منظم بإشراف د. مريم.',
   },
   'MALAFFI-PT-004': {
+    nameEn: 'Tariq, 29y',
+    nameAr: 'طارق، 29 سنة',
     titleEn: 'Varicocele Progressive Decline',
     titleAr: 'دوالي الخصية السريرية المتدهورة',
     paradoxEn: 'Grade 3 + TMSC velocity drop -28%/yr',
@@ -113,8 +145,14 @@ const PATIENT_DESCRIPTORS: Record<string, PatientDescriptor> = {
     sparkline: [38.0, 24.5, 14.2],
     sahatnaSummaryEn: 'HR 71 bpm · High Scrotal Heat Exposure',
     sahatnaSummaryAr: 'النبض 71 · تعرض متكرر للحرارة',
+    painEn: 'Without Masar Amanah: Referred with NULL FSH/LH and unverified +90d cycle, wasting 3–6 months bouncing between diagnostic labs without clear etiology while progressive varicocele damages spermatogenesis.',
+    painAr: 'بدون مسار أمانة: إحالة سريرية غير مكتملة بفحوصات هرمونية مفقودة (NULL) ودورة متابعة غير موثقة، ليهدر طارق 3-6 أشهر في مراجعات غير مجدية بينما تتلف الدوالي خلايا الخصية.',
+    magicEn: 'With Masar Amanah: Active Information-Gain engine pinpoints missing FSH/LH discriminator, collapses Shannon entropy (ΔH = -1.946 bits) to 94.2% diagnostic certainty, and closes the +90d loop with Dr. Mariam in 1 tap.',
+    magicAr: 'مع مسار أمانة: محرك كسب المعلومات النشط يحدد فحص FSH/LH الحاسم، مخفضاً إنتروبيا الشك بمقدار 1.946 بت وصولاً إلى يقين 94.2% وإغلاق حلقة الـ 90 يوماً مع د. مريم بنقرة واحدة.',
   },
   'MALAFFI-PT-005': {
+    nameEn: 'Zayd, 24y',
+    nameAr: 'زيد، 24 سنة',
     titleEn: 'Acute Scrotal Surgical Emergency',
     titleAr: 'طوارئ جراحية: التواء خصية حاد',
     paradoxEn: 'STAT Escalation: Torsion <12h salvage window',
@@ -122,8 +160,14 @@ const PATIENT_DESCRIPTORS: Record<string, PatientDescriptor> = {
     sparkline: [32.0, 12.0],
     sahatnaSummaryEn: 'HR 108 bpm (Tachycardia / Acute Pain response)',
     sahatnaSummaryAr: 'النبض 108 (تسارع نبض واستجابة للألم الحاد)',
+    painEn: 'Without Masar Amanah: Acute scrotal pain dismissed as mild epididymitis or scheduled for routine outpatient ultrasound, exceeding the critical <6h testicular torsion salvage window.',
+    painAr: 'بدون مسار أمانة: ألم صفني حاد يُشخص خطأ كالتهاب بسيط أو يُجدول لموجات فوق صوتية روتينية، متجاوزاً نافذة الإنقاذ الجراحي الحرجة (أقل من 6 ساعات).',
+    magicEn: 'With Masar Amanah: STAT Safety Circuit Breaker triggers immediate Tier 1 surgical escalation within the critical salvage window, alerting Dr. Mariam and on-call urology in real-time.',
+    magicAr: 'مع مسار أمانة: قاطع الدائرة فائق الأمان ينشط فوراً تصعيد الطوارئ الجراحية (المستوى 1) ضمن نافذة الإنقاذ، منبهاً د. مريم وجراحة المسالك المناوبة في 0 مللي ثانية.',
   },
   'MALAFFI-PT-006': {
+    nameEn: 'Rashid, 34y',
+    nameAr: 'راشد، 34 سنة',
     titleEn: 'Optimal Baseline Reference',
     titleAr: 'خط أساس خصوبة طبيعي مثالي',
     paradoxEn: 'All WHO 6th parameters >50th percentile',
@@ -131,6 +175,10 @@ const PATIENT_DESCRIPTORS: Record<string, PatientDescriptor> = {
     sparkline: [48.0, 52.0, 56.5],
     sahatnaSummaryEn: 'HR 62 bpm · Sleep 8.0h · High Step Count (10.5k)',
     sahatnaSummaryAr: 'النبض 62 · النوم 8 س · نشاط حركي مرتفع',
+    painEn: 'Without Masar Amanah: Pre-analytical variability or anxiety triggers unnecessary costly hormonal panels and unneeded invasive workups.',
+    painAr: 'بدون مسار أمانة: قلق الخصوبة واختلافات العينات المختبرية تدفعه لفحوصات هرمونية وتداخلات باهظة الثمن لا داعي لها.',
+    magicEn: 'With Masar Amanah: Validates robust baseline normozoospermia (>50th percentile across all parameters), reassuring the couple and avoiding over-medicalization while locking baseline QC under Dr. Mariam.',
+    magicAr: 'مع مسار أمانة: يثبت سلامة الخصوبة المعيارية المثالية (فوق المئين 50) بنقرة واحدة، مطمئناً الزوجين وموفراً تكاليف الفحوصات غير الضرورية تحت إشراف د. مريم.',
   },
 };
 
@@ -197,6 +245,15 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
   const [convergenceBanner, setConvergenceBanner] = useState<ResolutionConvergenceBanner | null>(null);
   const [loggedFacts, setLoggedFacts] = useState<LoggedFact[]>([]);
   const [isCausalDrawerOpen, setIsCausalDrawerOpen] = useState<boolean>(true);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
+  const [isTransferOpen, setIsTransferOpen] = useState<boolean>(false);
+
+  const handlePatientOnboarded = (newRecord: LongitudinalPatientRecord) => {
+    setCohort((prev) => [newRecord, ...prev]);
+    setSelectedPatientId(newRecord.patientId);
+    setActiveWorkbenchStep(1);
+    setIsOnboardingOpen(false);
+  };
 
   // Active patient record & live evaluation (zero cached results)
   const activeRecord =
@@ -854,6 +911,52 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
 
             <button
               type="button"
+              data-testid="btn-onboard-new-patient"
+              onClick={() => setIsOnboardingOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-xs transition-colors cursor-pointer"
+              title={isAr ? 'إدخال وتسجيل مريض جديد وفحصه' : 'Onboard brand-new walk-in patient chart'}
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>{isAr ? '➕ إدخال مريض جديد' : '➕ Onboard New Patient'}</span>
+            </button>
+
+            <button
+              type="button"
+              data-testid="btn-transfer-dispatch"
+              onClick={() => setIsTransferOpen(true)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shadow-xs ${
+                evaluation.lifeSafetyEscalations.some((e) => e.triggered) || activeRecord.patientId === 'MALAFFI-PT-005'
+                  ? 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
+                  : openLoopsCount === 0
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  : 'bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-600/40'
+              }`}
+              title={isAr ? 'إحالة ونقل المريض إلى مستشفيات أبوظبي' : 'Outbound Hospital Transfer & Referral Dispatch'}
+            >
+              {evaluation.lifeSafetyEscalations.some((e) => e.triggered) || activeRecord.patientId === 'MALAFFI-PT-005' ? (
+                <>
+                  <AlertOctagon className="w-3.5 h-3.5 text-white" />
+                  <span>{isAr ? '🚨 إحالة طوارئ فورية' : '🚨 STAT ER Transfer'}</span>
+                </>
+              ) : openLoopsCount === 0 ? (
+                <>
+                  <Building2 className="w-3.5 h-3.5 text-white" />
+                  <span>{isAr ? '🚑 إحالة المريض للمستشفى' : '🚑 Dispatch Hospital Transfer'}</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>
+                    {isAr
+                      ? `🔒 الإحالة معلقة (${openLoopsCount} حلقة مفتوحة)`
+                      : `🔒 Transfer Held (${openLoopsCount} Loops Open)`}
+                  </span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
               onClick={handleResetCohort}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors cursor-pointer"
               title={isAr ? 'إعادة ضبط كافة السجلات' : 'Reset all 6 patient charts to baseline'}
@@ -867,7 +970,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
         {/* Row 2: Patient Selector Pills (Enriched with Humanized Descriptors & SVG Sparklines) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
           <span className="text-[11px] font-mono uppercase font-bold text-slate-400 shrink-0">
-            {isAr ? 'المريض:' : 'Patient:'}
+            {isAr ? '📥 قائمة ملفي الواردة:' : '📥 Incoming Malaffi Queue:'}
           </span>
           {cohort.map((patient) => {
             const isSelected = patient.patientId === selectedPatientId;
@@ -891,11 +994,20 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                 }`}
               >
                 <div className="flex items-center gap-1.5 w-full">
-                  <span className="font-mono font-bold text-white">{patient.patientId}</span>
-                  <span className="text-[10px] text-slate-400">({patient.age}y)</span>
+                  <span className="font-bold text-white text-xs">
+                    {desc ? (isAr ? desc.nameAr : desc.nameEn) : ''}
+                  </span>
+                  <span className="font-mono text-slate-400 text-[10px]">
+                    · {patient.patientId}
+                  </span>
                   <span className="text-[10px] bg-slate-800 text-emerald-300 px-1 py-0.2 rounded font-mono font-bold">
                     {patientSop.id}
                   </span>
+                  {patient.patientId === 'MALAFFI-PT-004' && (
+                    <span className="px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 font-bold text-[9px] shadow-xs">
+                      ★ {isAr ? 'ابدأ هنا' : 'Start Here'}
+                    </span>
+                  )}
                   {desc && renderMiniSparkline(desc.sparkline, isSelected)}
                   {hasStat && (
                     <span className="px-1 py-0.2 rounded bg-rose-600 text-white font-bold text-[9px]">
@@ -930,8 +1042,12 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
             <span className="text-slate-500">•</span>
             <span className="text-slate-300">
               {PATIENT_DESCRIPTORS[activeRecord.patientId]
-                ? (isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].titleAr : PATIENT_DESCRIPTORS[activeRecord.patientId].titleEn)
+                ? `${isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].nameAr : PATIENT_DESCRIPTORS[activeRecord.patientId].nameEn} · ${isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].titleAr : PATIENT_DESCRIPTORS[activeRecord.patientId].titleEn}`
                 : activeRecord.patientId}
+            </span>
+            <span className="text-slate-500">•</span>
+            <span className="text-emerald-400 font-sans font-semibold">
+              {isAr ? 'إشراف: د. مريم (الطبيبة المعالجة)' : 'Attending: Dr. Mariam (Attending Physician)'}
             </span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -1037,11 +1153,97 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
         {/* LEFT COLUMN (62% Width): SOAP CLINICAL ENCOUNTER SHEET */}
         <div className="w-full lg:w-[62%] flex flex-col gap-6">
 
+          {/* =====================================================================
+              THE MOMENT THAT MATTERS: TODAY'S PAIN VS. 1-TAP MAGIC
+              Based on Stephen Gear (Microsoft Innovation Hub) & Hack2Skill Rubric
+             ===================================================================== */}
+          <div
+            data-testid="moment-that-matters-banner"
+            className="rounded-2xl border border-slate-700/80 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-4 sm:p-5 shadow-sm space-y-3"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+                  {isAr ? 'اللحظة الحاسمة • ألم الواقع الحالي مقابل حل مسار أمانة بنقرة واحدة' : 'The Moment That Matters • Today’s Pain vs. 1-Tap Magic'}
+                </span>
+              </div>
+              <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                <span className="text-white font-bold">
+                  {PATIENT_DESCRIPTORS[activeRecord.patientId]
+                    ? (isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].nameAr : PATIENT_DESCRIPTORS[activeRecord.patientId].nameEn)
+                    : activeRecord.patientId}
+                </span>
+                <span>•</span>
+                <span className="text-emerald-300 font-sans font-semibold">
+                  {isAr ? 'إشراف: د. مريم' : 'Dr. Mariam in Charge'}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs leading-relaxed">
+              {/* 🔴 The Pain */}
+              <div className="rounded-xl bg-rose-950/40 border border-rose-800/40 p-3 flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 text-rose-300 font-bold text-[11px] uppercase tracking-wide">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span>{isAr ? 'بدون مسار أمانة (الألم / الواقع اليوم)' : 'Without Masar Amanah (The Pain)'}</span>
+                </div>
+                <p className="text-rose-100/90 text-[11.5px] leading-relaxed">
+                  {PATIENT_DESCRIPTORS[activeRecord.patientId]?.painEn
+                    ? (isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].painAr : PATIENT_DESCRIPTORS[activeRecord.patientId].painEn)
+                    : ''}
+                </p>
+              </div>
+
+              {/* 🟢 The Magic */}
+              <div className="rounded-xl bg-emerald-950/40 border border-emerald-700/50 p-3 flex flex-col gap-1.5">
+                <div className="flex items-center gap-1.5 text-emerald-300 font-bold text-[11px] uppercase tracking-wide">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>{isAr ? 'مع مسار أمانة (الحل بنقرة واحدة)' : 'With Masar Amanah (The 1-Tap Magic)'}</span>
+                </div>
+                <p className="text-emerald-100/90 text-[11.5px] leading-relaxed">
+                  {PATIENT_DESCRIPTORS[activeRecord.patientId]?.magicEn
+                    ? (isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].magicAr : PATIENT_DESCRIPTORS[activeRecord.patientId].magicEn)
+                    : ''}
+                </p>
+              </div>
+            </div>
+          </div>
+
       {/* =====================================================================
           STEP 1: Longitudinal Scan & Blind Spots
          ===================================================================== */}
       {(activeWorkbenchStep === 1 || expertView) && (
         <div className="flex flex-col gap-5 animate-fade-in">
+          {/* 👉 DO THIS NEXT: Step 1 Spotlight Banner */}
+          <div className="bg-emerald-950/90 border-2 border-emerald-500/70 rounded-2xl p-4 shadow-md text-emerald-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-800/80 border border-emerald-400 flex items-center justify-center shrink-0 text-white font-bold text-sm">
+                1
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                  <span>👉 {isAr ? 'الإجراء التالي المطلوب:' : 'DO THIS NEXT:'}</span>
+                  <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-900 border border-emerald-600 font-mono text-emerald-200">
+                    S: Subjective Malaffi Intake
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm font-semibold text-white mt-0.5">
+                  {isAr
+                    ? 'راجع السجل الطولي وفحص السلامة الحاد (0 علامات خطر)، ثم انقر على الزر للمعاينة المخبرية.'
+                    : 'Review longitudinal Malaffi intake and acute safety screen (0 red flags), then click below to inspect Objective Labs.'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleGuidedNext}
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            >
+              <span>{isAr ? 'فحص المختبر (الخطوة 2) ←' : 'Inspect Objective Labs (Step 2) →'}</span>
+            </button>
+          </div>
+
           {/* Patient Overview Header */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm animate-slide-up">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
@@ -1461,6 +1663,35 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
          ===================================================================== */}
       {(activeWorkbenchStep === 2 || expertView) && (
         <div className="flex flex-col gap-5 animate-fade-in">
+          {/* 👉 DO THIS NEXT: Step 2 Spotlight Banner */}
+          <div className="bg-sky-950/90 border-2 border-sky-500/70 rounded-2xl p-4 shadow-md text-sky-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-sky-800/80 border border-sky-400 flex items-center justify-center shrink-0 text-white font-bold text-sm">
+                2
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-sky-300 flex items-center gap-1.5">
+                  <span>👉 {isAr ? 'الإجراء التالي المطلوب:' : 'DO THIS NEXT:'}</span>
+                  <span className="text-[10px] px-2 py-0.2 rounded-full bg-sky-900 border border-sky-600 font-mono text-sky-200">
+                    O: Objective Labs & Differential
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm font-semibold text-white mt-0.5">
+                  {isAr
+                    ? 'تحقق من معايير منظمة الصحة العالمية (احذر فخ TMSC < 20M) ولاحظ الفحوصات الهرمونية الفارغة (NULL)، ثم انتقل للتقييم.'
+                    : 'Verify WHO 6th semen parameters (watch for False-Normal TMSC < 20M trap) and note missing NULL endocrine labs, then proceed to Assessment.'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleGuidedNext}
+              className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+            >
+              <span>{isAr ? 'الانتقال للتقييم البايزي (الخطوة 3) ←' : 'Proceed to Assessment (Step 3) →'}</span>
+            </button>
+          </div>
+
           {/* Clean Side-by-Side Table: WHO 6th Semen Parameters & Endocrine Labs */}
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-4">
@@ -2429,6 +2660,49 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
          ===================================================================== */}
       {(activeWorkbenchStep === 3 || expertView) && (
         <div className="flex flex-col gap-5 animate-fade-in">
+          {/* 👉 DO THIS NEXT: Step 3 Spotlight Banner */}
+          <div className="bg-amber-950/90 border-2 border-amber-500/70 rounded-2xl p-4 shadow-md text-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-800/80 border border-amber-400 flex items-center justify-center shrink-0 text-white font-bold text-sm">
+                3
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                  <span>👉 {isAr ? 'الإجراء التالي المطلوب:' : 'DO THIS NEXT:'}</span>
+                  <span className="text-[10px] px-2 py-0.2 rounded-full bg-amber-900 border border-amber-600 font-mono text-amber-200">
+                    A: Close Open Loops & Unlock Transfer
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm font-semibold text-white mt-0.5">
+                  {openLoopsCount > 0
+                    ? (isAr
+                        ? `أغلق الحلقة التشخيصية ${isOpenLoop1 ? '#1 (حسم فحص الهرمونات المفقود)' : '#2 (دورة متابعة الـ 90 يوماً)'} بنقرة واحدة لفتح خيار إحالة المستشفى فوراً.`
+                        : `Close Open Loop ${isOpenLoop1 ? '#1 (resolve missing NULL endocrine lab)' : '#2 (+90d spermatogenesis cycle)'} in 1 tap to unlock Hospital Transfer!`)
+                    : (isAr
+                        ? 'تم إغلاق كافة الحلقات التشخيصية بنجاح! انتقل للخطوة 4 أو انقر فوق [🚑 إحالة المريض للمستشفى].'
+                        : 'All diagnostic loops resolved! Proceed to Step 4 or click [🚑 Dispatch Hospital Transfer].')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleGuidedNext}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                <span>{getGuidedCtaLabel()}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsTransferOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-200 border border-amber-600/60 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>{isAr ? 'الإحالة' : 'Referral'}</span>
+              </button>
+            </div>
+          </div>
+
           <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3 mb-5">
@@ -3471,53 +3745,100 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
           STEP 4: Converged Care Plan & FHIR Handoff Summary
          ===================================================================== */}
       {(activeWorkbenchStep === 4 || expertView) && (
-        <div className="bg-slate-900 text-white border-2 border-emerald-600 rounded-2xl p-6 shadow-md flex flex-col items-center text-center gap-4 animate-fade-in">
-          <span className="w-12 h-12 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600 flex items-center justify-center">
-            <CheckCircle2 className="w-6 h-6" />
-          </span>
-          <div>
-            <div className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold mb-1">
-              {isAr ? 'الخطوة 4: خطة الرعاية المتكاملة ونقل بيانات FHIR R4' : 'Step 4: Converged Care Plan & FHIR R4 Handoff'}
+        <div className="flex flex-col gap-5 animate-fade-in">
+          {/* 👉 DO THIS NEXT: Step 4 Spotlight Banner */}
+          <div className="bg-purple-950/90 border-2 border-purple-500/70 rounded-2xl p-4 shadow-md text-purple-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-800/80 border border-purple-400 flex items-center justify-center shrink-0 text-white font-bold text-sm">
+                4
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
+                  <span>👉 {isAr ? 'الإجراء التالي المطلوب:' : 'DO THIS NEXT:'}</span>
+                  <span className="text-[10px] px-2 py-0.2 rounded-full bg-purple-900 border border-purple-600 font-mono text-purple-200">
+                    P: Care Plan & Outbound Dispatch
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm font-semibold text-white mt-0.5">
+                  {isAr
+                    ? 'د. مريم تقود القرار السريري: اعتمد خطة الرعاية المتقاربة، ثم انقر على [🚑 إحالة المريض للمستشفى] لختم إيصال ملفي الإلكتروني.'
+                    : 'Dr. Mariam Stays in Charge: Review converged care plan, then click [🚑 Dispatch Hospital Transfer] to stamp the electronic referral receipt.'}
+                </p>
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-white">
-              {isAr ? 'تم تقليص عدم اليقين وإغلاق الحلقات التشخيصية بنجاح' : 'Bayesian Convergence Achieved · Ready for Care Plan Handoff'}
-            </h3>
-            <p className="text-xs text-slate-300 max-w-xl mx-auto mt-1 leading-relaxed">
-              {isAr
-                ? 'تم حسم الفحوصات وتوثيق المسار الزمني الطولي. يمكنك الآن عرض خطة الرعاية المعتمدة ومحاكي 90 يوماً ورمز الاستجابة السريعة لشبكة ملفي.'
-                : 'All diagnostic discriminator tests resolved and longitudinal trajectory verified. Proceed to the 90-Day Spermatogenesis Simulator, Abu Dhabi Care Directory, and verified Malaffi FHIR R4 QR code.'}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3 font-mono text-xs my-1">
-            <div className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-              <span className="text-slate-400">Final Entropy:</span>{' '}
-              <span className="text-cyan-300 font-bold">{evaluation.jointEntropyBits} bits</span>
-            </div>
-            <div className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-              <span className="text-slate-400">Diagnostic Certainty:</span>{' '}
-              <span className="text-emerald-400 font-bold">{evaluation.diagnosticCertaintyPct}%</span>
-            </div>
-            <div className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-              <span className="text-slate-400">Open Loops:</span>{' '}
-              <span className="text-emerald-400 font-bold">0 (ALL CLOSED ✓)</span>
-            </div>
-          </div>
-
-          {onBridgeToCarePlan && (
             <button
               type="button"
-              data-testid="btn-bridge-care-plan"
-              onClick={() => onBridgeToCarePlan(activeRecord, evaluation)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 text-sm mt-2"
+              onClick={() => setIsTransferOpen(true)}
+              className="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold text-xs shrink-0 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
             >
-              <span>
-                {isAr
-                  ? 'عرض خطة الرعاية ومحاكي 90 يوماً ورمز الاستجابة السريعة ←'
-                  : 'Open Full Abu Dhabi Care Plan & 90-Day Simulator →'}
-              </span>
+              <Building2 className="w-3.5 h-3.5" />
+              <span>{isAr ? '🚑 إحالة المريض للمستشفى' : '🚑 Dispatch Hospital Transfer'}</span>
             </button>
-          )}
+          </div>
+
+          <div className="bg-slate-900 text-white border-2 border-emerald-600 rounded-2xl p-6 shadow-md flex flex-col items-center text-center gap-4 animate-fade-in">
+            <span className="w-12 h-12 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-600 flex items-center justify-center">
+              <CheckCircle2 className="w-6 h-6" />
+            </span>
+            <div>
+              <div className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold mb-1">
+                {isAr ? 'الخطوة 4: خطة الرعاية المتكاملة • د. مريم تبقى المسؤولة عن كل قرار سريري' : 'Step 4: Converged Care Plan • Dr. Mariam Stays in Charge of Every Clinical Decision'}
+              </div>
+              <h3 className="text-xl font-bold text-white">
+                {isAr ? 'د. مريم تبقى المسؤولة عن كل قرار سريري (حوكمة خماسية البوابات وفق معيار DECIDE-AI)' : 'Dr. Mariam Stays in Charge of Every Clinical Decision (5-Gate DECIDE-AI Governance)'}
+              </h3>
+              <p className="text-xs text-slate-300 max-w-xl mx-auto mt-1 leading-relaxed">
+                {isAr
+                  ? 'تم حسم الفحوصات وتوثيق المسار الزمني الطولي بنجاح. الطبيبة المعالجة د. مريم تعتمد خطة الرعاية ومحاكي 90 يوماً ورمز الاستجابة السريعة لشبكة ملفي بنقرة واحدة.'
+                  : 'All diagnostic discriminator tests resolved and longitudinal trajectory verified. Dr. Mariam stays in complete clinical charge across 5-Gate DECIDE-AI governance, approving the 90-Day Spermatogenesis Simulator and Malaffi FHIR R4 QR code.'}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 font-mono text-xs my-1">
+              <div className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+                <span className="text-slate-400">Final Entropy:</span>{' '}
+                <span className="text-cyan-300 font-bold">{evaluation.jointEntropyBits} bits</span>
+              </div>
+              <div className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+                <span className="text-slate-400">Diagnostic Certainty:</span>{' '}
+                <span className="text-emerald-400 font-bold">{evaluation.diagnosticCertaintyPct}%</span>
+              </div>
+              <div className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+                <span className="text-slate-400">Open Loops:</span>{' '}
+                <span className="text-emerald-400 font-bold">0 (ALL CLOSED ✓)</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+              {onBridgeToCarePlan && (
+                <button
+                  type="button"
+                  data-testid="btn-bridge-care-plan"
+                  onClick={() => onBridgeToCarePlan(activeRecord, evaluation)}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400 text-sm"
+                >
+                  <span>
+                    {isAr
+                      ? 'عرض خطة الرعاية ومحاكي 90 يوماً ورمز الاستجابة السريعة ←'
+                      : 'Open Full Abu Dhabi Care Plan & 90-Day Simulator →'}
+                  </span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsTransferOpen(true)}
+                className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg transition-all flex items-center gap-2 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-400 text-sm"
+              >
+                <Building2 className="w-4 h-4" />
+                <span>
+                  {isAr
+                    ? '🚑 إحالة ونقل سريري للمستشفيات المعتمدة (SSMC / CCAD) ←'
+                    : '🚑 Outbound Hospital Transfer & Referral Dispatch →'}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
         </div>
@@ -3557,6 +3878,27 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
           </button>
         </div>
       )}
+
+      {/* Onboard New Patient Modal */}
+      <NewPatientOnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+        onPatientOnboarded={handlePatientOnboarded}
+        language={language}
+      />
+
+      {/* Outbound Hospital Transfer & Referral Dispatch Modal */}
+      <TransferDispatchModal
+        isOpen={isTransferOpen}
+        onClose={() => setIsTransferOpen(false)}
+        record={activeRecord}
+        evaluation={evaluation}
+        language={language}
+        onJumpToStep={(step) => {
+          setActiveWorkbenchStep(step);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 }

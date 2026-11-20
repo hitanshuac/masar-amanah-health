@@ -91,9 +91,14 @@ export function runEvaluationFlywheelAudit(): FlywheelAuditReport {
   const workbench = readFileSafe('src/components/DiagnosticWorkbench.tsx');
   const copilotSidebar = readFileSafe('src/components/SopCopilotSidebar.tsx');
   const simulator = readFileSafe('src/components/RecoverySimulator.tsx');
+  const step4 = readFileSafe('src/components/Step4Results.tsx');
+  const agentTrace = readFileSafe('src/components/AgentTraceGraph.tsx');
   const screeningTypes = readFileSafe('src/types/screening.ts');
   const contractSchema = readFileSafe('docs/specs/contract.schema.json');
   const constitution = readFileSafe('.specify/memory/constitution.md');
+  const pitchDeck = readFileSafe('docs/EXECUTIVE_PITCH_DECK.md');
+  const pilotProposal = readFileSafe('docs/specs/PILOT_PROPOSAL.md');
+  const judgeQa = readFileSafe('docs/JUDGE_QA_DEFENSE_MATRIX.md');
 
   // --------------------------------------------------------------------------
   // Dimension 1: First-5-Second Emotional & Visual Hook (ADPHC Judge 1)
@@ -192,6 +197,21 @@ export function runEvaluationFlywheelAudit(): FlywheelAuditReport {
       passed: workbench.includes('timeline') || workbench.includes('encounter') || workbench.includes('Day 0') || workbench.includes('Day +90'),
       evidence: 'Differentiated encounter cards with clear temporal ordering and milestone badges',
     },
+    {
+      check: 'Named Personas (Khaled, Tariq, Dr. Mariam) integrated in patient selection and headers',
+      passed: workbench.includes('Khaled') && workbench.includes('Tariq') && (workbench.includes('Dr. Mariam') || workbench.includes('Mariam')) && welcomeView.includes('Khaled') && welcomeView.includes('Tariq'),
+      evidence: 'Named personas (Khaled, 32y · PT-001 & Tariq, 29y · PT-004) and Dr. Mariam (Attending Physician) confirmed',
+    },
+    {
+      check: '"Dr. Mariam Stays in Charge of Every Clinical Decision" human-value governance headline',
+      passed: step4.includes('Dr. Mariam Stays in Charge') || agentTrace.includes('Dr. Mariam Stays in Charge') || workbench.includes('Dr. Mariam Stays in Charge'),
+      evidence: '"Dr. Mariam Stays in Charge of Every Clinical Decision (5-Gate DECIDE-AI Governance)" headline active',
+    },
+    {
+      check: '"The Moment That Matters (Today\'s Pain vs. 1-Tap Magic)" narrative contrast banner active',
+      passed: workbench.includes('The Moment That Matters') && (workbench.includes('Without Masar Amanah') || workbench.includes('Today’s Pain')) && (workbench.includes('With Masar Amanah') || workbench.includes('1-Tap Magic')),
+      evidence: 'Narrative contrast strip (Without Masar Amanah / With Masar Amanah 1-Tap Magic) verified in Workbench',
+    },
   ];
   const d3Score = (d3Checks.filter((c) => c.passed).length / d3Checks.length) * 3.8 + 6.0; // 6.0 - 9.8
 
@@ -289,6 +309,26 @@ export function runEvaluationFlywheelAudit(): FlywheelAuditReport {
       check: 'Complete print stylesheet with proper page break rules',
       passed: indexCss.includes('@media print') && indexCss.includes('page-break-after: avoid'),
       evidence: 'Print stylesheet configured with page breaks, monospace IDs, and clean borders',
+    },
+    {
+      check: 'Microsoft BXT Matrix (5/5 Desirability, Feasibility, Viability) & 5 Golden Questions',
+      passed: pitchDeck.includes('Microsoft BXT') && pilotProposal.includes('Microsoft BXT') && pitchDeck.includes('5 Golden Questions') && pilotProposal.includes('5 Golden Questions'),
+      evidence: 'BXT Matrix (5/5 all domains) and 5 Golden Questions table confirmed across pitch and pilot docs',
+    },
+    {
+      check: 'The 6 Judge Questions & Live Exception Handling ([⚡ Outcome Differs from Prediction])',
+      passed: judgeQa.includes('Question 4') && judgeQa.includes('Outcome Differs from Prediction') && copilotSidebar.includes('Outcome Differs from Prediction') && (pitchDeck.includes('6 Mandatory Judge Questions') || pitchDeck.includes('6 Judge Questions')),
+      evidence: '6 Judge Questions documented with [⚡ Outcome Differs from Prediction] showcased as live answer',
+    },
+    {
+      check: '"Moment That Matters" sentence, 5 Whys Root-Cause Chain & "How Might We... Despite [Limit]"',
+      passed: pitchDeck.includes('Moment That Matters') && pilotProposal.includes('Moment That Matters') && pitchDeck.includes('5 Whys') && pilotProposal.includes('5 Whys') && pitchDeck.includes('How Might We') && pilotProposal.includes('How Might We'),
+      evidence: '"Moment That Matters", 5 Whys Root-Cause Chain, and "How Might We... Despite [Limit]" verified',
+    },
+    {
+      check: 'Explicit Clinical, Technical & Operational Assumptions & Limitations (Mandated at 1:03:56)',
+      passed: pitchDeck.includes('Assumptions & Limitations') && pilotProposal.includes('Assumptions & Limitations') && (pitchDeck.includes('1:03:56') || pilotProposal.includes('1:03:56')),
+      evidence: 'Dedicated scope boundaries & transparent limitations section verified across pitch deck and proposal',
     },
   ];
   const d6Score = (d6Checks.filter((c) => c.passed).length / d6Checks.length) * 2.8 + 7.0; // 7.0 - 9.8

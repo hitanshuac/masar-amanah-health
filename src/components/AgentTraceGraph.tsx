@@ -123,12 +123,16 @@ export const AgentTraceGraph: React.FC<AgentTraceGraphProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-sm sm:text-base flex items-center gap-2">
-                <span>{isAr ? 'هندسة التنسيق القطعي خماسية البوابات' : '5-Gate Deterministic Coordination Architecture'}</span>
+                <span>
+                  {isAr
+                    ? 'د. مريم تبقى المسؤولة عن كل قرار سريري (حوكمة خماسية البوابات وفق معيار DECIDE-AI)'
+                    : 'Dr. Mariam Stays in Charge of Every Clinical Decision (5-Gate DECIDE-AI Governance)'}
+                </span>
               </h3>
               <p className="text-[11px] text-slate-500">
                 {isAr
-                  ? 'نموذج Inception42 (د. نانسي الناكر): خمس بوابات تحكم مسار القرار مع حفظ القيم المفقودة كـ null'
-                  : 'Inception42 Blueprint (Dr. Nance Elnaker): 5 explicit gates + "Null Never Becomes Zero" invariant'}
+                  ? 'نموذج Inception42 (د. نانسي الناكر): خمس بوابات تحكم مسار القرار مع حفظ القيم المفقودة كـ null — الطبيب هو متخذ القرار النهائي'
+                  : 'Inception42 Blueprint (Dr. Nance Elnaker): 5-Gate DECIDE-AI audit trace guaranteeing clinician agency & "Null Never Becomes Zero" invariant'}
               </p>
             </div>
           </div>

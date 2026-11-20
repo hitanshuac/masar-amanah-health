@@ -22,12 +22,14 @@ interface WelcomeViewProps {
   onStart: () => void;
   language: Language;
   onOpenPrivacyModal: () => void;
+  onOnboardWalkIn?: () => void;
 }
 
 export const WelcomeView: React.FC<WelcomeViewProps> = ({
   onStart,
   language,
   onOpenPrivacyModal,
+  onOnboardWalkIn,
 }) => {
   const t = TRANSLATIONS[language];
   const isAr = language === 'ar';
@@ -83,8 +85,8 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({
             </button>
           </div>
 
-          {/* CTA Button */}
-          <div className="pt-2">
+          {/* CTA Buttons */}
+          <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
               onClick={onStart}
               className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 rounded-2xl font-black text-sm sm:text-base shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 cursor-pointer"
@@ -93,6 +95,60 @@ export const WelcomeView: React.FC<WelcomeViewProps> = ({
               <span>{t.startScreening}</span>
               <ArrowRight className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
             </button>
+
+            {onOnboardWalkIn && (
+              <button
+                type="button"
+                onClick={onOnboardWalkIn}
+                className="w-full sm:w-auto px-6 py-4 bg-slate-900/90 hover:bg-slate-800 text-emerald-300 border border-emerald-500/50 rounded-2xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+              >
+                <span>➕ {isAr ? 'إدخال مريض جديد (عيادة)' : 'Onboard Walk-In Patient'}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Stephen Gear (Microsoft Innovation Hub) "The Moment That Matters" & Named Personas Banner */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-7 text-white shadow-md space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-400">
+              {isAr ? 'اللحظة الحاسمة • إطار الابتكار السريري (Microsoft BXT)' : 'The Moment That Matters • Microsoft Innovation Hub BXT Lens'}
+            </span>
+          </div>
+          <span className="text-xs font-mono text-slate-400">
+            {isAr ? 'إشراف: د. مريم (الطبيبة المعالجة)' : 'Attending: Dr. Mariam (Attending Physician)'}
+          </span>
+        </div>
+
+        <blockquote className="text-sm sm:text-base font-medium text-slate-200 italic leading-relaxed border-s-4 border-emerald-500 ps-4 py-1">
+          {isAr
+            ? '"عندما يتلقى الرجل نتائج فحوصاته أو تذكيراً دورياً، يحتاج لدافع شخصي ومسار بنقرة واحدة لإغلاق حلقته التشخيصية، لكن عتبات المختبرات المضللة، وفحوصات الهرمونات المفقودة، والرسائل النصية العامة تقف عائقاً أمامه."'
+            : '"When a man\'s screening lab or reminder arrives, he needs a personal reason and a 1-tap path to complete his diagnostic loop, but false-normal reference cutoffs, missing NULL endocrine labs, and generic SMS outreach get in the way."'}
+        </blockquote>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs">
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+            <div className="font-bold text-emerald-400 flex items-center gap-1.5">
+              <span>{isAr ? 'خالد (32 سنة) • كشف الفخ المخبري وتدهور القلب الصامت' : 'Khaled, 32y • Catching the False-Normal Trap'}</span>
+            </div>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              {isAr
+                ? 'فحوصات خالد صنفت كـ "طبيعية" ظاهرياً رغم أن العدد الكلي المتحرك 10.32 مليون فقط؛ مسار أمانة يكتشف هذا الفخ وخطر القلب المبكر في نقرة واحدة.'
+                : 'Khaled was stamped "Normal" despite 10.32M TMSC subfertility; Masar Amanah intercepts his cardiometabolic trajectory and connects him to Dr. Mariam.'}
+            </p>
+          </div>
+          <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
+            <div className="font-bold text-cyan-400 flex items-center gap-1.5">
+              <span>{isAr ? 'طارق (29 سنة) • حسم الفحوصات المفقودة وإغلاق الحلقات' : 'Tariq, 29y • 1-Tap Active Info-Gain Loop Closure'}</span>
+            </div>
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              {isAr
+                ? 'فحوصات الهرمونات المفقودة (FSH/LH) عطلت علاجه لأشهر؛ محرك كسب المعلومات يحسم التشخيص بيقين 94.2% ويغلق الحلقات مع د. مريم.'
+                : 'Missing NULL FSH/LH stalled Tariq for months; Active Shannon Information Gain collapses diagnostic ambiguity to 94.2% certainty in 1 tap.'}
+            </p>
           </div>
         </div>
       </div>

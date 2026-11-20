@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-16T10:46:01.876Z",
+  "timestamp": "2026-11-20T18:06:41.035Z",
   "frameworkVersion": "v2.0-GOOGLE-AGENT-EVAL-FLYWHEEL-GITEX",
   "compositeAverage": 9.8,
   "targetComposite": 9.8,
@@ -103,7 +103,10 @@
         "Inline SVG sparkline renderer and CSS container verified",
         "Sahatna wearable indicators (resting heart rate, sleep duration) present in clinical review",
         "Human-readable clinical syndrome labels paired with ICD/LOINC technical tokens",
-        "Differentiated encounter cards with clear temporal ordering and milestone badges"
+        "Differentiated encounter cards with clear temporal ordering and milestone badges",
+        "Named personas (Khaled, 32y · PT-001 & Tariq, 29y · PT-004) and Dr. Mariam (Attending Physician) confirmed",
+        "\"Dr. Mariam Stays in Charge of Every Clinical Decision (5-Gate DECIDE-AI Governance)\" headline active",
+        "Narrative contrast strip (Without Masar Amanah / With Masar Amanah 1-Tap Magic) verified in Workbench"
       ],
       "gapsOrRisks": [],
       "heuristicChecks": [
@@ -131,6 +134,21 @@
           "check": "Encounter timeline cards have visual density and latest-visit hierarchy",
           "passed": true,
           "evidence": "Differentiated encounter cards with clear temporal ordering and milestone badges"
+        },
+        {
+          "check": "Named Personas (Khaled, Tariq, Dr. Mariam) integrated in patient selection and headers",
+          "passed": true,
+          "evidence": "Named personas (Khaled, 32y · PT-001 & Tariq, 29y · PT-004) and Dr. Mariam (Attending Physician) confirmed"
+        },
+        {
+          "check": "\"Dr. Mariam Stays in Charge of Every Clinical Decision\" human-value governance headline",
+          "passed": true,
+          "evidence": "\"Dr. Mariam Stays in Charge of Every Clinical Decision (5-Gate DECIDE-AI Governance)\" headline active"
+        },
+        {
+          "check": "\"The Moment That Matters (Today's Pain vs. 1-Tap Magic)\" narrative contrast banner active",
+          "passed": true,
+          "evidence": "Narrative contrast strip (Without Masar Amanah / With Masar Amanah 1-Tap Magic) verified in Workbench"
         }
       ]
     },
@@ -232,7 +250,11 @@
         "Strict color token hierarchy for Tiers 1 through 4",
         "Responsive wrapping and scroll containers prevent truncation",
         "Parameters grouped into clinical domain cards rather than unformatted wall of inputs",
-        "Print stylesheet configured with page breaks, monospace IDs, and clean borders"
+        "Print stylesheet configured with page breaks, monospace IDs, and clean borders",
+        "BXT Matrix (5/5 all domains) and 5 Golden Questions table confirmed across pitch and pilot docs",
+        "6 Judge Questions documented with [⚡ Outcome Differs from Prediction] showcased as live answer",
+        "\"Moment That Matters\", 5 Whys Root-Cause Chain, and \"How Might We... Despite [Limit]\" verified",
+        "Dedicated scope boundaries & transparent limitations section verified across pitch deck and proposal"
       ],
       "gapsOrRisks": [],
       "heuristicChecks": [
@@ -260,6 +282,26 @@
           "check": "Complete print stylesheet with proper page break rules",
           "passed": true,
           "evidence": "Print stylesheet configured with page breaks, monospace IDs, and clean borders"
+        },
+        {
+          "check": "Microsoft BXT Matrix (5/5 Desirability, Feasibility, Viability) & 5 Golden Questions",
+          "passed": true,
+          "evidence": "BXT Matrix (5/5 all domains) and 5 Golden Questions table confirmed across pitch and pilot docs"
+        },
+        {
+          "check": "The 6 Judge Questions & Live Exception Handling ([⚡ Outcome Differs from Prediction])",
+          "passed": true,
+          "evidence": "6 Judge Questions documented with [⚡ Outcome Differs from Prediction] showcased as live answer"
+        },
+        {
+          "check": "\"Moment That Matters\" sentence, 5 Whys Root-Cause Chain & \"How Might We... Despite [Limit]\"",
+          "passed": true,
+          "evidence": "\"Moment That Matters\", 5 Whys Root-Cause Chain, and \"How Might We... Despite [Limit]\" verified"
+        },
+        {
+          "check": "Explicit Clinical, Technical & Operational Assumptions & Limitations (Mandated at 1:03:56)",
+          "passed": true,
+          "evidence": "Dedicated scope boundaries & transparent limitations section verified across pitch deck and proposal"
         }
       ]
     },
@@ -318,7 +360,7 @@
         "Safe narrative tokenized rendering enforced",
         "Working tree clean of local user machine paths",
         "ScreeningInput: 18/18 props, ClinicalEvaluationResult: 12/12 props",
-        "Entry JS: 130.7 kB gzip (<150 kB), CSS: 12.7 kB gzip (<20 kB)"
+        "Entry JS: 133 kB gzip (<150 kB), CSS: 13.9 kB gzip (<20 kB)"
       ],
       "gapsOrRisks": [],
       "heuristicChecks": [
@@ -345,7 +387,7 @@
         {
           "check": "Production bundle within budget (JS < 150 kB gzip, CSS < 20 kB gzip)",
           "passed": true,
-          "evidence": "Entry JS: 130.7 kB gzip (<150 kB), CSS: 12.7 kB gzip (<20 kB)"
+          "evidence": "Entry JS: 133 kB gzip (<150 kB), CSS: 13.9 kB gzip (<20 kB)"
         }
       ]
     }

@@ -700,9 +700,9 @@ async function runGuidedLoopVerification() {
 
   recordAssertion(
     'STAGE-1',
-    'Server Health & Deterministic Cohort Reset (/api/patients/reset)',
+    'Server Health & Cohort Reset (Khaled PT-001, Tariq PT-004 · Dr. Mariam)',
     Boolean(health && resetRes && pt004Before),
-    `Engine online; MALAFFI-PT-004 reset to initial unmutated state`
+    `Engine online; MALAFFI-PT-004 (Tariq) reset to initial unmutated state`
   );
 
   // --------------------------------------------------------------------------
@@ -792,24 +792,24 @@ async function runGuidedLoopVerification() {
     JSON.stringify(pt001Graph).includes('SYN_FALSE_NORMAL_SUBFERTILITY');
 
   await updateBrowserHud(cdp, {
-    stageLabel: 'STAGE 2 / 7 • MALAFFI-PT-001 BLIND-SPOT & IFHAS MACE SCREEN',
+    stageLabel: 'STAGE 2 / 7 • MALAFFI-PT-001 (KHALED, 32Y) • POKE THE PAIN',
     loopStatusText: '1 Open Loop (Follow-Up Needed)',
     highlightSelector: '[data-testid="btn-guided-loop-next"]',
     calloutText: '1-Click Guided Controller Active',
-    kicker: 'Solving ADPHC Webinar #1 (56:10) Bottleneck • Plane A & Plane B Parallel Check',
-    title: 'MALAFFI-PT-001: Catching "False-Normal" Semen Labs (TMSC = 10.32M) & Silent MACE',
+    kicker: 'Beat 1: Poke the Pain ↔ Beat 2: Named Persona: Khaled (32y) · Dr. Mariam in Charge',
+    title: 'Khaled\'s Story: The "False-Normal" Trap (TMSC 10.32M) & Silent Pre-MACE Escalation',
     subtitle:
-      'All 4 individual WHO 6th Ed lines pass cutoff, yet composite Total Motile Sperm Count is 10.32M (<20M threshold). Plane A correlates falling Testosterone + HbA1c 5.5%→6.3% + Sahatna HR 88 bpm to trigger early IFHAS Cardiology escalation.',
+      '🔴 Today\'s Pain: Khaled passes all 4 individual WHO lines, stamped "Normal" despite 10.32M TMSC (<20M). He ignores generic SMS reminders while silent cardiometabolic risk (HbA1c 6.3%, HR 88 bpm) advances for 2–3 years. 🟢 1-Tap Magic: Masar Amanah intercepts both risks in 1 tap, routing Khaled directly to Dr. Mariam and IFHAS Preventive Cardiology.',
     metrics: [
-      'Blind Spot: TMSC 10.32M (<20M)',
-      'Plane A: IFHAS MACE Precursor (I25.10)',
-      'Sahatna Wearable Sync Verified',
+      'Persona: Khaled, 32y (PT-001)',
+      '🔴 Pain: False-Normal LIS Stamp',
+      '🟢 Magic: 1-Tap Pre-MACE Route',
     ],
   });
   await sleep(500);
   await recorder.captureScene('pt001-blindspot-mace', 4200, {
-    stageLabel: 'STAGE 2 / 7 • MALAFFI-PT-001',
-    title: 'False-Normal WHO Line Trap (TMSC = 10.32M) & Silent Cardiometabolic Escalation',
+    stageLabel: 'STAGE 2 / 7 • KHALED (MALAFFI-PT-001)',
+    title: 'Khaled: False-Normal WHO Line Trap (TMSC 10.32M) & Silent Cardiometabolic Escalation',
   });
 
   recordAssertion(
@@ -832,24 +832,24 @@ async function runGuidedLoopVerification() {
     Boolean(pt004Before && pt004Before.openLoopsCount === 2);
 
   await updateBrowserHud(cdp, {
-    stageLabel: 'STAGE 3 / 7 • STEP 1: LONGITUDINAL SCAN & OPEN LOOP DETECTION',
+    stageLabel: 'STAGE 3 / 7 • MALAFFI-PT-004 (TARIQ, 29Y) • 2 OPEN CLINICAL LOOPS',
     loopStatusText: '2 Open Loops (Action Required)',
     highlightSelector: '[data-testid="btn-guided-loop-next"]',
     calloutText: 'Click #1 → Advance to Step 2 Causal Root-Tree',
-    kicker: 'Patient MALAFFI-PT-004 • Unresolved Severe Oligozoospermia Trajectory',
-    title: 'Step 1: Multi-Visit Malaffi Scan Detects 2 Open Clinical Loops',
+    kicker: 'Beat 1: Poke the Pain ↔ Beat 2: Named Persona: Tariq (29y) · Dr. Mariam in Charge',
+    title: 'Tariq\'s Story: 2 Open Loops & The Incomplete Referral Frustration',
     subtitle:
-      'Open Loop #1: Missing discriminating endocrine panel (FSH/LH is NULL, elevating Shannon entropy). Open Loop #2: Unverified +90-day spermatogenic cycle follow-up encounter.',
+      '🔴 Today\'s Pain: Tariq is referred to tertiary urology with NULL FSH/LH and unverified +90d cycle, wasting 3–6 months bouncing between labs while progressive varicocele causes testicular damage. 🟢 1-Tap Magic: Step 1 scan detects both open loops instantly, setting up Active Information-Gain resolution.',
     metrics: [
-      'Open Loop #1: NULL FSH/LH Panel',
-      'Open Loop #2: +90d Cycle Unverified',
-      'Strict Null ≠ Zero Invariant Active',
+      'Persona: Tariq, 29y (PT-004)',
+      '🔴 Pain: NULL Lab Referral Delay',
+      '🟢 Magic: 2 Open Loops Tagged',
     ],
   });
   await sleep(500);
   await recorder.captureScene('pt004-step1-scan', 4200, {
-    stageLabel: 'STAGE 3 / 7 • STEP 1 SCAN',
-    title: 'MALAFFI-PT-004: 2 Open Clinical Loops Detected on Multi-Visit Timeline',
+    stageLabel: 'STAGE 3 / 7 • TARIQ (MALAFFI-PT-004) STEP 1 SCAN',
+    title: 'Tariq (29y): 2 Open Clinical Loops Detected on Multi-Visit Timeline',
   });
 
   recordAssertion(
@@ -877,10 +877,10 @@ async function runGuidedLoopVerification() {
     loopStatusText: '2 Open Loops (Action Required)',
     highlightSelector: '[data-testid="btn-guided-loop-next"]',
     calloutText: 'Click #2 → Open Loop Closure Station',
-    kicker: 'Independent Logistic Log-Odds Posteriors (Zero Softmax Dilution)',
+    kicker: 'Beat 3: Sprinkle the Magic • Independent Logistic DAG (No Softmax Dilution)',
     title: 'Step 2: 4-Layer Causal Root-Tree & 6 Competing Subfertility Hypotheses',
     subtitle:
-      'Because FSH and LH remain NULL (contributing ln LR = 0.0), Primary Testicular Sertoli Failure (45.0%) and Ductal Obstruction remain unseparated. Next click opens the Active Information-Gain Station.',
+      'Because FSH and LH remain NULL (contributing ln LR = 0.0), Primary Testicular Sertoli Failure (45.0%) and Ductal Obstruction remain unseparated. Next click opens the Active Information-Gain Station under Dr. Mariam.',
     metrics: [
       'Pre-Lab Sertoli Failure: 45.0%',
       '6 Independent Logistic Branches',
@@ -911,8 +911,8 @@ async function runGuidedLoopVerification() {
     loopStatusText: '2 Open Loops (Action Required)',
     highlightSelector: '[data-testid="btn-guided-loop-next"]',
     calloutText: 'Click #3 → Inject FSH = 24.2 IU/L (Top IG Rank)',
-    kicker: 'Shadow-Simulating Abnormal vs. Normal Outcomes Across NULL Biomarkers',
-    title: 'Step 3 Station: Ranking Candidate Labs by Expected Information Gain (Bits)',
+    kicker: 'Beat 3: Sprinkle the Magic • Shadow-Simulating NULL Biomarkers',
+    title: 'Step 3 Station: Ranking Candidate Labs by Expected Shannon Information Gain',
     subtitle:
       'The loop controller shadow-simulates candidate endocrine tests against Joint Binary Shannon Entropy H_joint(D|E_t), ranking Serum FSH & LH #1 for resolving diagnostic ambiguity.',
     metrics: [
@@ -943,14 +943,14 @@ async function runGuidedLoopVerification() {
     loopStatusText: '1 Open Loop (Follow-Up Remaining)',
     highlightSelector: '[data-testid="btn-guided-loop-next"]',
     calloutText: 'Click #4 → Verify +90d Follow-Up Encounter',
-    kicker: 'Live Bayesian Posterior Update • Open Loop #1 Resolved',
+    kicker: 'Beat 3: Sprinkle the Magic • Live 1-Tap Bayesian Posterior Update',
     title: 'Injected Serum FSH (24.2 IU/L) → Primary Testicular Failure Converges 45.0% → 94.2%',
     subtitle:
-      'Resolving the NULL endocrine discriminator collapses Joint Binary Shannon Entropy by ΔH = -1.946 bits and locks Primary Testicular Sertoli Failure at 94.2% posterior probability.',
+      '🟢 1-Tap Magic: Resolving NULL endocrine discriminator collapses Shannon Entropy by ΔH = -1.946 bits (94.2% certainty). Live Exception Handling: If outcome differed, [⚡ Outcome Differs from Prediction] pivots differential instantly.',
     metrics: [
       'Entropy Drop: ΔH = -1.946 bits',
       'Sertoli Failure: 45.0% → 94.2%',
-      'Open Loops: 2 → 1 Remaining',
+      'Exception: [⚡ Outcome Differs] Ready',
     ],
   });
   await sleep(500);
@@ -984,10 +984,10 @@ async function runGuidedLoopVerification() {
     loopStatusText: '0 Open Loops (All Loops Closed ✓)',
     highlightSelector: '[data-testid="btn-guided-loop-next"]',
     calloutText: 'Click #5 → Bridge to Step 4 Care Plan & FHIR R4',
-    kicker: 'Complete Longitudinal Loop Closure • Zero-Cache Deterministic Signature',
+    kicker: 'Beat 3: Sprinkle the Magic • Complete Longitudinal Loop Closure',
     title: '+90-Day Spermatogenic Follow-Up Logged → 0 Open Loops (All Loops Closed ✓)',
     subtitle:
-      'Appending the +90-day verification encounter (t_{k+1}) completes the longitudinal diagnostic loop, updates the 32-bit FNV-1a #inputHash→#outputHash, and unlocks the 1-Click Mode 2 Care Plan Bridge.',
+      '🟢 1-Tap Magic: Appending the +90-day verification encounter (t_{k+1}) completes Tariq\'s longitudinal loop, updates the 32-bit FNV-1a #inputHash→#outputHash, and unlocks the 1-Click Mode 2 Care Plan Bridge under Dr. Mariam.',
     metrics: [
       'Status: 0 Open Loops (Closed ✓)',
       'FNV-1a 32-Bit Signature Locked',
@@ -1032,12 +1032,12 @@ async function runGuidedLoopVerification() {
     loopStatusText: '0 Open Loops (All Loops Closed ✓)',
     highlightSelector: 'main',
     calloutText: 'Mode 1 → Mode 2 Bridge Complete',
-    kicker: 'Seamless Malaffi Handoff • DECIDE-AI 5-Gate Audit & HL7 FHIR R4 Bundle',
+    kicker: 'Beat 4: The Outcome • "Dr. Mariam Stays in Charge of Every Clinical Decision"',
     title: 'Step 4: Converged Care Plan, 90-Day Recovery Simulator & Malaffi FHIR QR Handoff',
     subtitle:
-      'Displays the Connected Malaffi Graph Proof Banner (94.2% Diagnostic Certainty), 5-Gate Clinical Governance Trace, 90-Day Spermatogenesis Simulator, and printable HL7 FHIR R4 QR Code.',
+      'Human Value: Dr. Mariam stays in charge across 5-Gate DECIDE-AI governance. Tariq receives an empowering 90-day recovery plan and printable zero-PII SVG QR code for Abu Dhabi care continuity.',
     metrics: [
-      'Connected Malaffi Banner Active',
+      'Dr. Mariam Stays in Charge',
       '5-Gate DECIDE-AI Trace Passed',
       'HL7 FHIR R4 + SVG QR Ready',
     ],
