@@ -17,7 +17,7 @@
  * - Show All Regions (Expert View) toggle
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   LongitudinalPatientRecord,
   ClosedLoopGraphEvaluation,
@@ -61,6 +61,7 @@ import {
 import {
   SOP_REGISTRY,
   getSopForPatient,
+  getSopForRecord,
   stepNumberToSoapKey,
   soapKeyToStepNumber,
   SoapStepKey,
@@ -182,6 +183,30 @@ const PATIENT_DESCRIPTORS: Record<string, PatientDescriptor> = {
   },
 };
 
+function getPatientDescriptor(patient: LongitudinalPatientRecord): PatientDescriptor {
+  if (PATIENT_DESCRIPTORS[patient.patientId]) {
+    return PATIENT_DESCRIPTORS[patient.patientId];
+  }
+  const isEmergency = patient.encounters.some(
+    (e) => e.clinicalFlags.acuteScrotalPain || e.clinicalFlags.painlessTesticularMass
+  );
+  return {
+    nameEn: patient.primaryComplaintEn ? `${patient.primaryComplaintEn.split(' ')[0]}, ${patient.age}y` : `Walk-In, ${patient.age}y`,
+    nameAr: patient.primaryComplaintAr ? `${patient.primaryComplaintAr.split(' ')[0]}، ${patient.age} سنة` : `مريض جديد، ${patient.age} سنة`,
+    titleEn: isEmergency ? 'STAT Acute Scrotal Emergency' : 'Walk-In Primary Screening',
+    titleAr: isEmergency ? 'طوارئ جراحية: صفن حاد' : 'فحص سريري مباشر لمريض جديد',
+    paradoxEn: isEmergency ? 'STAT Torsion Salvage Window <6h' : 'Live Walk-In Bayesian Evaluation',
+    paradoxAr: isEmergency ? 'إنقاذ جراحي عاجل أقل من 6 ساعات' : 'تقييم بايزي حي لمريض قادم للعيادة',
+    sparkline: isEmergency ? [35.0, 10.0] : [22.0, 18.0, 16.5],
+    sahatnaSummaryEn: `HR 72 bpm · Age ${patient.age} · Intake In-Progress`,
+    sahatnaSummaryAr: `النبض 72 · العمر ${patient.age} · قيد التسجيل بالعيادة`,
+    painEn: 'Without Masar Amanah: Reliance on fragmented one-off lab tests or generic SMS notifications delays accurate root-cause diagnosis by months.',
+    painAr: 'بدون مسار أمانة: الاعتماد على فحوصات أحادية متفرقة وتنبيهات نصية عامة يؤخر التشخيص الدقيق لجذور الحالة لعدة أشهر.',
+    magicEn: 'With Masar Amanah: Comprehensive Bayesian DAG immediately resolves diagnostic uncertainty and routes the patient directly to Dr. Mariam with a structured care plan.',
+    magicAr: 'مع مسار أمانة: شبكة بايزية سببية شاملة تحسم الشك التشخيصي وتوجه المريض مباشرة إلى د. مريم مع خطة رعاية متكاملة.',
+  };
+}
+
 const SYNDROME_HUMAN_TITLES: Record<string, { en: string; ar: string }> = {
   'SYN_FALSE_NORMAL_SUBFERTILITY': {
     en: 'False-Normal Subfertility Trap',
@@ -248,7 +273,19 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
   const [isOnboardingOpen, setIsOnboardingOpen] = useState<boolean>(false);
   const [isTransferOpen, setIsTransferOpen] = useState<boolean>(false);
 
+  const innerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelAutoPlay = () => {
+    setIsAutoPlay(false);
+    setAutoPlayNarrative(null);
+    if (innerTimerRef.current) {
+      clearTimeout(innerTimerRef.current);
+      innerTimerRef.current = null;
+    }
+  };
+
   const handlePatientOnboarded = (newRecord: LongitudinalPatientRecord) => {
+    cancelAutoPlay();
     setCohort((prev) => [newRecord, ...prev]);
     setSelectedPatientId(newRecord.patientId);
     setActiveWorkbenchStep(1);
@@ -261,7 +298,8 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
   const evaluation: ClosedLoopGraphEvaluation = evaluatePatientGraph(activeRecord);
 
   const activeSoapStepKey: SoapStepKey = stepNumberToSoapKey(activeWorkbenchStep);
-  const activeSop: SOPProtocol = getSopForPatient(activeRecord.patientId);
+  const activeSop: SOPProtocol = getSopForRecord(activeRecord);
+  const activeDesc = getPatientDescriptor(activeRecord);
 
   // Feature #3: Active Selected Hypothesis & Connected Causal Nodes
   const activeHypothesis =
@@ -359,6 +397,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
 
   // Handler: Select Patient
   const handleSelectPatient = (id: string) => {
+    cancelAutoPlay();
     setSelectedPatientId(id);
     setConvergenceBanner(null);
     setCustomInputValue('');
@@ -371,6 +410,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
 
   // Handler: Reset Cohort
   const handleResetCohort = async () => {
+    cancelAutoPlay();
     const fresh: LongitudinalPatientRecord[] = JSON.parse(
       JSON.stringify(LONGITUDINAL_MALAFFI_COHORT)
     );
@@ -470,12 +510,14 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
       certaintyAfter: result.newEvaluation.diagnosticCertaintyPct,
     });
 
-    // Background sync to server if online
-    fetch(`/api/patients/${activeRecord.patientId}/mutate-encounter`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode, patch }),
-    }).catch(() => {});
+    // Background sync to server if online (skip client-only walk-in patients to prevent 404s)
+    if (!activeRecord.patientId.startsWith('MALAFFI-PT-NEW')) {
+      fetch(`/api/patients/${activeRecord.patientId}/mutate-encounter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode, patch }),
+      }).catch(() => {});
+    }
   };
 
   const updateEndocrineField = (
@@ -571,15 +613,17 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
     setCustomInputValue('');
     setActiveCustomBiomarker(null);
 
-    // Background sync to server if online
-    try {
-      await fetch(`/api/patients/${activeRecord.patientId}/resolve-null`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ biomarkerKey, measuredValue }),
-      });
-    } catch {
-      // In-memory update is authoritative
+    // Background sync to server if online (skip client-only walk-in patients to prevent 404s)
+    if (!activeRecord.patientId.startsWith('MALAFFI-PT-NEW')) {
+      try {
+        await fetch(`/api/patients/${activeRecord.patientId}/resolve-null`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ biomarkerKey, measuredValue }),
+        });
+      } catch {
+        // In-memory update is authoritative
+      }
     }
   };
 
@@ -744,7 +788,13 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
 
   // Auto-Play Judge Walkthrough Orchestrator
   useEffect(() => {
-    if (!isAutoPlay) return;
+    if (!isAutoPlay) {
+      if (innerTimerRef.current) {
+        clearTimeout(innerTimerRef.current);
+        innerTimerRef.current = null;
+      }
+      return;
+    }
 
     const timer = setTimeout(() => {
       if (activeWorkbenchStep === 1) {
@@ -753,7 +803,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
             ? '▶ الجولة التوجيهية: الخطوة 1 — استعراض السجل الطولي لملفي (لاحظ الفخ الخفي: العدد الكلي 10.32M < 20M)'
             : '▶ Guided Walkthrough: Step 1 — Ingesting Malaffi Longitudinal Record (Spotting False-Normal TMSC Trap: 10.32M < 20M)'
         );
-        setTimeout(() => {
+        innerTimerRef.current = setTimeout(() => {
           handleGuidedNext();
         }, 1200);
       } else if (activeWorkbenchStep === 2) {
@@ -762,7 +812,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
             ? '▶ الجولة التوجيهية: الخطوة 2 — شجرة الجذور السببية البايزية (احتمال قبلي P₀ = 45.0% مع حلقتين معلقتين)'
             : '▶ Guided Walkthrough: Step 2 — 4-Layer Causal Root-Tree (Prior P₀ = 45.0%, Joint Entropy = 2.62 bits with 2 Open Loops)'
         );
-        setTimeout(() => {
+        innerTimerRef.current = setTimeout(() => {
           handleGuidedNext();
         }, 1200);
       } else if (activeWorkbenchStep === 3) {
@@ -788,7 +838,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
               ? '▶ الجولة التوجيهية: اكتمال إغلاق كافة الحلقات بنجاح (الإنتروبيا 0.67 bits). الانتقال لخطة الرعاية المتكاملة!'
               : '▶ Guided Walkthrough: All Loops Closed ✓ (Entropy collapsed to 0.67 bits). Bridging to Converged Care Plan!'
           );
-          setTimeout(() => {
+          innerTimerRef.current = setTimeout(() => {
             setIsAutoPlay(false);
             if (onBridgeToCarePlan) {
               onBridgeToCarePlan(activeRecord, evaluation);
@@ -798,7 +848,13 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
       }
     }, 2500);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (innerTimerRef.current) {
+        clearTimeout(innerTimerRef.current);
+        innerTimerRef.current = null;
+      }
+    };
   }, [isAutoPlay, activeWorkbenchStep, isOpenLoop1, isOpenLoop2, activeRecord, evaluation, isAr, onBridgeToCarePlan]);
 
   // Dynamic Label for Master Guided CTA Button
@@ -912,7 +968,10 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
             <button
               type="button"
               data-testid="btn-onboard-new-patient"
-              onClick={() => setIsOnboardingOpen(true)}
+              onClick={() => {
+                cancelAutoPlay();
+                setIsOnboardingOpen(true);
+              }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg shadow-xs transition-colors cursor-pointer"
               title={isAr ? 'إدخال وتسجيل مريض جديد وفحصه' : 'Onboard brand-new walk-in patient chart'}
             >
@@ -923,9 +982,14 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
             <button
               type="button"
               data-testid="btn-transfer-dispatch"
-              onClick={() => setIsTransferOpen(true)}
+              onClick={() => {
+                cancelAutoPlay();
+                setIsTransferOpen(true);
+              }}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer shadow-xs ${
-                evaluation.lifeSafetyEscalations.some((e) => e.triggered) || activeRecord.patientId === 'MALAFFI-PT-005'
+                evaluation.lifeSafetyEscalations.some((e) => e.triggered) ||
+                activeRecord.patientId === 'MALAFFI-PT-005' ||
+                activeRecord.encounters.some((e) => e.clinicalFlags.acuteScrotalPain || e.clinicalFlags.painlessTesticularMass)
                   ? 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse'
                   : openLoopsCount === 0
                   ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -933,7 +997,9 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
               }`}
               title={isAr ? 'إحالة ونقل المريض إلى مستشفيات أبوظبي' : 'Outbound Hospital Transfer & Referral Dispatch'}
             >
-              {evaluation.lifeSafetyEscalations.some((e) => e.triggered) || activeRecord.patientId === 'MALAFFI-PT-005' ? (
+              {evaluation.lifeSafetyEscalations.some((e) => e.triggered) ||
+              activeRecord.patientId === 'MALAFFI-PT-005' ||
+              activeRecord.encounters.some((e) => e.clinicalFlags.acuteScrotalPain || e.clinicalFlags.painlessTesticularMass) ? (
                 <>
                   <AlertOctagon className="w-3.5 h-3.5 text-white" />
                   <span>{isAr ? '🚨 إحالة طوارئ فورية' : '🚨 STAT ER Transfer'}</span>
@@ -975,10 +1041,13 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
           {cohort.map((patient) => {
             const isSelected = patient.patientId === selectedPatientId;
             const evalPreview = evaluatePatientGraph(patient);
-            const hasStat = evalPreview.lifeSafetyEscalations.some((e) => e.triggered);
+            const hasStat =
+              evalPreview.lifeSafetyEscalations.some((e) => e.triggered) ||
+              patient.patientId === 'MALAFFI-PT-005' ||
+              patient.encounters.some((e) => e.clinicalFlags.acuteScrotalPain || e.clinicalFlags.painlessTesticularMass);
             const hasBlind = evalPreview.blindSpotSyndromes.some((s) => s.triggered);
-            const desc = PATIENT_DESCRIPTORS[patient.patientId];
-            const patientSop = getSopForPatient(patient.patientId);
+            const desc = getPatientDescriptor(patient);
+            const patientSop = getSopForRecord(patient);
 
             return (
               <button
@@ -995,7 +1064,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
               >
                 <div className="flex items-center gap-1.5 w-full">
                   <span className="font-bold text-white text-xs">
-                    {desc ? (isAr ? desc.nameAr : desc.nameEn) : ''}
+                    {isAr ? desc.nameAr : desc.nameEn}
                   </span>
                   <span className="font-mono text-slate-400 text-[10px]">
                     · {patient.patientId}
@@ -1008,7 +1077,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                       ★ {isAr ? 'ابدأ هنا' : 'Start Here'}
                     </span>
                   )}
-                  {desc && renderMiniSparkline(desc.sparkline, isSelected)}
+                  {renderMiniSparkline(desc.sparkline, isSelected)}
                   {hasStat && (
                     <span className="px-1 py-0.2 rounded bg-rose-600 text-white font-bold text-[9px]">
                       STAT
@@ -1020,11 +1089,9 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                     </span>
                   )}
                 </div>
-                {desc && (
-                  <span className={`text-[10px] truncate max-w-[140px] font-normal ${isSelected ? 'text-emerald-300 font-semibold' : 'text-slate-400'}`}>
-                    {isAr ? desc.titleAr : desc.titleEn}
-                  </span>
-                )}
+                <span className={`text-[10px] truncate max-w-[140px] font-normal ${isSelected ? 'text-emerald-300 font-semibold' : 'text-slate-400'}`}>
+                  {isAr ? desc.titleAr : desc.titleEn}
+                </span>
               </button>
             );
           })}
@@ -1041,9 +1108,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
             </span>
             <span className="text-slate-500">•</span>
             <span className="text-slate-300">
-              {PATIENT_DESCRIPTORS[activeRecord.patientId]
-                ? `${isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].nameAr : PATIENT_DESCRIPTORS[activeRecord.patientId].nameEn} · ${isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].titleAr : PATIENT_DESCRIPTORS[activeRecord.patientId].titleEn}`
-                : activeRecord.patientId}
+              {`${isAr ? activeDesc.nameAr : activeDesc.nameEn} · ${isAr ? activeDesc.titleAr : activeDesc.titleEn}`}
             </span>
             <span className="text-slate-500">•</span>
             <span className="text-emerald-400 font-sans font-semibold">
@@ -1076,6 +1141,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                   key={step.num}
                   type="button"
                   onClick={() => {
+                    cancelAutoPlay();
                     if (step.num === 4) {
                       if (onBridgeToCarePlan) onBridgeToCarePlan(activeRecord, evaluation);
                     } else {
@@ -1170,9 +1236,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
               </div>
               <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
                 <span className="text-white font-bold">
-                  {PATIENT_DESCRIPTORS[activeRecord.patientId]
-                    ? (isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].nameAr : PATIENT_DESCRIPTORS[activeRecord.patientId].nameEn)
-                    : activeRecord.patientId}
+                  {isAr ? activeDesc.nameAr : activeDesc.nameEn}
                 </span>
                 <span>•</span>
                 <span className="text-emerald-300 font-sans font-semibold">
@@ -1189,9 +1253,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                   <span>{isAr ? 'بدون مسار أمانة (الألم / الواقع اليوم)' : 'Without Masar Amanah (The Pain)'}</span>
                 </div>
                 <p className="text-rose-100/90 text-[11.5px] leading-relaxed">
-                  {PATIENT_DESCRIPTORS[activeRecord.patientId]?.painEn
-                    ? (isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].painAr : PATIENT_DESCRIPTORS[activeRecord.patientId].painEn)
-                    : ''}
+                  {isAr ? activeDesc.painAr : activeDesc.painEn}
                 </p>
               </div>
 
@@ -1202,9 +1264,7 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                   <span>{isAr ? 'مع مسار أمانة (الحل بنقرة واحدة)' : 'With Masar Amanah (The 1-Tap Magic)'}</span>
                 </div>
                 <p className="text-emerald-100/90 text-[11.5px] leading-relaxed">
-                  {PATIENT_DESCRIPTORS[activeRecord.patientId]?.magicEn
-                    ? (isAr ? PATIENT_DESCRIPTORS[activeRecord.patientId].magicAr : PATIENT_DESCRIPTORS[activeRecord.patientId].magicEn)
-                    : ''}
+                  {isAr ? activeDesc.magicAr : activeDesc.magicEn}
                 </p>
               </div>
             </div>
@@ -1255,12 +1315,10 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                   <span className="font-mono text-sm font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
                     {activeRecord.pseudonymToken}
                   </span>
-                  {PATIENT_DESCRIPTORS[activeRecord.patientId] && (
+                  {activeDesc.paradoxEn && (
                     <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px] flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-amber-600" />
-                      {isAr
-                        ? PATIENT_DESCRIPTORS[activeRecord.patientId].paradoxAr
-                        : PATIENT_DESCRIPTORS[activeRecord.patientId].paradoxEn}
+                      {isAr ? activeDesc.paradoxAr : activeDesc.paradoxEn}
                     </span>
                   )}
                 </div>
@@ -1268,16 +1326,14 @@ export function DiagnosticWorkbench({ language, onBridgeToCarePlan }: Diagnostic
                   {isAr ? activeRecord.primaryComplaintAr : activeRecord.primaryComplaintEn}
                 </p>
                 {/* Sahatna Wearable Live Stream Bar */}
-                {PATIENT_DESCRIPTORS[activeRecord.patientId] && (
+                {activeDesc.sahatnaSummaryEn && (
                   <div className="flex items-center gap-2 mt-1.5 text-[11px] text-slate-600 font-mono">
                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="font-semibold text-emerald-800">
                       {isAr ? 'صحتي (Sahatna Wearable):' : 'Sahatna Wearable Feed:'}
                     </span>
                     <span>
-                      {isAr
-                        ? PATIENT_DESCRIPTORS[activeRecord.patientId].sahatnaSummaryAr
-                        : PATIENT_DESCRIPTORS[activeRecord.patientId].sahatnaSummaryEn}
+                      {isAr ? activeDesc.sahatnaSummaryAr : activeDesc.sahatnaSummaryEn}
                     </span>
                   </div>
                 )}

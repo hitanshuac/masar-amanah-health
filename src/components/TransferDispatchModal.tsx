@@ -116,7 +116,9 @@ export const TransferDispatchModal: React.FC<TransferDispatchModalProps> = ({
   const isEmergency =
     evaluation.lifeSafetyEscalations.some((e) => e.triggered) ||
     record.patientId === 'MALAFFI-PT-005' ||
-    record.encounters.some((e) => e.clinicalFlags.acuteScrotalPain);
+    record.encounters.some(
+      (e) => e.clinicalFlags.acuteScrotalPain || e.clinicalFlags.painlessTesticularMass
+    );
 
   // State
   const [selectedHospitalId, setSelectedHospitalId] = useState<string>(() => {
@@ -192,7 +194,7 @@ export const TransferDispatchModal: React.FC<TransferDispatchModalProps> = ({
       aria-labelledby="transfer-modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 animate-fade-in"
     >
-      <div className="w-full max-w-2xl bg-slate-900 border-2 border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col text-slate-100 max-h-[92vh]">
+      <div className="w-full max-w-2xl bg-slate-900 border-2 border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col text-slate-100 max-h-[90vh]">
         {/* Header */}
         <div className="bg-slate-950 p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
@@ -234,7 +236,7 @@ export const TransferDispatchModal: React.FC<TransferDispatchModalProps> = ({
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 text-xs sm:text-sm">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5 text-xs sm:text-sm">
           {/* Pre-Transfer Readiness Gate */}
           {receipt ? (
             /* Stamped Dispatch State */
@@ -286,34 +288,6 @@ export const TransferDispatchModal: React.FC<TransferDispatchModalProps> = ({
                     {new Date(receipt.timestamp).toLocaleTimeString()} · {new Date(receipt.timestamp).toLocaleDateString()}
                   </span>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-2">
-                <button
-                  type="button"
-                  onClick={handleCopyReceipt}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4 text-emerald-400" />
-                      <span>{isAr ? 'تم نسخ الإيصال!' : 'Receipt Copied!'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4 text-slate-300" />
-                      <span>{isAr ? 'نسخ إيصال الإحالة' : 'Copy Referral Receipt'}</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all cursor-pointer"
-                >
-                  {isAr ? 'إغلاق ومتابعة الحالة' : 'Close & Continue Care'}
-                </button>
               </div>
             </div>
           ) : (
@@ -498,47 +472,79 @@ export const TransferDispatchModal: React.FC<TransferDispatchModalProps> = ({
                   </div>
                 </div>
               </div>
+            </>
+          )}
+        </div>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
-                >
-                  {isAr ? 'إلغاء' : 'Cancel'}
-                </button>
+        {/* Modal Footer (Pinned for 720p Viewport Safety) */}
+        <div className="shrink-0 p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-3">
+          {receipt ? (
+            <>
+              <button
+                type="button"
+                onClick={handleCopyReceipt}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>{isAr ? 'تم نسخ الإيصال!' : 'Receipt Copied!'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-slate-300" />
+                    <span>{isAr ? 'نسخ إيصال الإحالة' : 'Copy Referral Receipt'}</span>
+                  </>
+                )}
+              </button>
 
-                <button
-                  type="button"
-                  onClick={handleDispatch}
-                  disabled={!isTransferReady}
-                  className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
-                    !isTransferReady
-                      ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
-                      : isEmergency
-                      ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40 cursor-pointer'
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 cursor-pointer'
-                  }`}
-                >
-                  {isEmergency ? (
-                    <>
-                      <AlertOctagon className="w-4 h-4" />
-                      <span>{isAr ? '🚨 إرسال إحالة الطوارئ فوراً' : '🚨 Dispatch STAT ER Transfer'}</span>
-                    </>
-                  ) : !isTransferReady ? (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      <span>{isAr ? '🔒 الإحالة معلقة (أغلق الحلقات أولاً)' : '🔒 Dispatch Blocked (Close Loops)'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Building2 className="w-4 h-4" />
-                      <span>{isAr ? '🚑 اعتماد وإرسال الإحالة الطبية' : '🚑 Confirm & Stamp Transfer Dispatch'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-all cursor-pointer"
+              >
+                {isAr ? 'إغلاق ومتابعة الحالة' : 'Close & Continue Care'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                {isAr ? 'إلغاء' : 'Cancel'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDispatch}
+                disabled={!isTransferReady}
+                className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
+                  !isTransferReady
+                    ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60'
+                    : isEmergency
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-900/40 cursor-pointer'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/40 cursor-pointer'
+                }`}
+              >
+                {isEmergency ? (
+                  <>
+                    <AlertOctagon className="w-4 h-4" />
+                    <span>{isAr ? '🚨 إرسال إحالة الطوارئ فوراً' : '🚨 Dispatch STAT ER Transfer'}</span>
+                  </>
+                ) : !isTransferReady ? (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>{isAr ? '🔒 الإحالة معلقة (أغلق الحلقات أولاً)' : '🔒 Dispatch Blocked (Close Loops)'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Building2 className="w-4 h-4" />
+                    <span>{isAr ? '🚑 اعتماد وإرسال الإحالة الطبية' : '🚑 Confirm & Stamp Transfer Dispatch'}</span>
+                  </>
+                )}
+              </button>
             </>
           )}
         </div>

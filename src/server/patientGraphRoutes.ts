@@ -75,6 +75,12 @@ patientGraphRouter.get('/', (_req: Request, res: Response) => {
 patientGraphRouter.get('/:id/graph', (req: Request, res: Response) => {
   const record = patientStore.get(req.params.id);
   if (!record) {
+    if (req.params.id.startsWith('MALAFFI-PT-NEW')) {
+      return res.status(200).json({
+        patientId: req.params.id,
+        status: 'CLIENT_VOLATILE_ONLY',
+      });
+    }
     return res.status(404).json({ error: `Patient record ${req.params.id} not found` });
   }
 
@@ -99,6 +105,12 @@ patientGraphRouter.post('/:id/mutate-encounter', (req: Request, res: Response) =
 
   const record = patientStore.get(req.params.id);
   if (!record) {
+    if (req.params.id.startsWith('MALAFFI-PT-NEW')) {
+      return res.status(200).json({
+        patientId: req.params.id,
+        status: 'CLIENT_VOLATILE_ONLY',
+      });
+    }
     return res.status(404).json({ error: `Patient record ${req.params.id} not found` });
   }
 
@@ -128,6 +140,12 @@ patientGraphRouter.post('/:id/resolve-null', (req: Request, res: Response) => {
 
   const record = patientStore.get(req.params.id);
   if (!record) {
+    if (req.params.id.startsWith('MALAFFI-PT-NEW')) {
+      return res.status(200).json({
+        patientId: req.params.id,
+        status: 'CLIENT_VOLATILE_ONLY',
+      });
+    }
     return res.status(404).json({ error: `Patient record ${req.params.id} not found` });
   }
 

@@ -12,6 +12,8 @@
  * All protocols operate purely on pseudonymized tokens and clinical parameters.
  */
 
+import type { LongitudinalPatientRecord } from '../types/diagnosticGraph';
+
 export type SoapStepKey = 'S' | 'O' | 'A' | 'P';
 
 export type EncounterPhase = 'Day 0 Intake' | 'Day +2 Lab Hold' | '🗓️ Day +90 Return Visit';
@@ -1706,6 +1708,35 @@ export const PATIENT_TO_SOP: Record<string, string> = {
 export function getSopForPatient(patientId: string): SOPProtocol {
   const sopId = PATIENT_TO_SOP[patientId] || 'SOP-01';
   return SOP_REGISTRY[sopId] || SOP_REGISTRY['SOP-01'];
+}
+
+/**
+ * Returns the active SOP protocol for a given patient record (with dynamic matching for walk-in patients)
+ */
+export function getSopForRecord(record: LongitudinalPatientRecord): SOPProtocol {
+  if (PATIENT_TO_SOP[record.patientId]) {
+    return SOP_REGISTRY[PATIENT_TO_SOP[record.patientId]] || SOP_REGISTRY['SOP-01'];
+  }
+  // Dynamic matching for newly onboarded / walk-in patients
+  const hasAcute = record.encounters.some(
+    (e) => e.clinicalFlags.acuteScrotalPain || e.clinicalFlags.painlessTesticularMass
+  );
+  if (hasAcute) return SOP_REGISTRY['SOP-02'];
+
+  const hasVaricocele = record.encounters.some((e) => e.clinicalFlags.varicoceleGrade >= 2);
+  if (hasVaricocele) return SOP_REGISTRY['SOP-04'];
+
+  const hasTrt = record.encounters.some((e) =>
+    (e.medications || []).some((m) => m.class === 'TRT_ANDROGEN' || m.class === '5ARI')
+  );
+  if (hasTrt) return SOP_REGISTRY['SOP-05'];
+
+  const hasMetabolic = record.encounters.some(
+    (e) => e.vitals.bmi >= 30 || e.vitals.hba1cPct >= 6.5
+  );
+  if (hasMetabolic) return SOP_REGISTRY['SOP-03'];
+
+  return SOP_REGISTRY['SOP-01'];
 }
 
 /**

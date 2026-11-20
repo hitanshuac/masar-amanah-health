@@ -169,7 +169,7 @@ export const NewPatientOnboardingModal: React.FC<NewPatientOnboardingModalProps>
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/85"
       dir={isAr ? 'rtl' : 'ltr'}
     >
-      <div className="relative w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl text-slate-100 flex flex-col max-h-[92vh] overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-3xl shadow-2xl text-slate-100 flex flex-col max-h-[90vh] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-3">
@@ -650,7 +650,7 @@ export const NewPatientOnboardingModal: React.FC<NewPatientOnboardingModalProps>
         </div>
 
         {/* Footer Navigation */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/90">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/90 shrink-0">
           <div>
             {step > 1 && (
               <button
