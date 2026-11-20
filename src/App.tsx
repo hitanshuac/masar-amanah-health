@@ -284,7 +284,7 @@ This screening report is educational and does not constitute a formal diagnosis.
 
       {/* Prominent Solid-Surface Platform Mode Switcher Bar */}
       <div className="bg-slate-900 border-b border-slate-800 text-white px-4 py-2.5 print:hidden">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5">
+        <div className="w-full max-w-[1920px] mx-auto px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-mono uppercase tracking-wider bg-emerald-900 text-emerald-300 px-2.5 py-0.5 rounded font-bold border border-emerald-700">
               GITEX 2026 · CLINICAL PLATFORM
@@ -337,7 +337,7 @@ This screening report is educational and does not constitute a formal diagnosis.
       )}
 
       {/* Main Container */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col">
+      <main className="flex-1 w-full max-w-[1920px] mx-auto px-4 md:px-8 py-6 sm:py-8 flex flex-col">
         {platformMode === 'WORKBENCH' ? (
           <Suspense
             fallback={
@@ -466,7 +466,7 @@ This screening report is educational and does not constitute a formal diagnosis.
 
       {/* Footer */}
       <footer className="w-full border-t border-slate-200 bg-white py-6 px-4 text-center text-xs text-slate-500 mt-auto print:hidden">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="w-full max-w-[1920px] mx-auto px-4 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-700" />
             <span className="font-semibold text-slate-700">
