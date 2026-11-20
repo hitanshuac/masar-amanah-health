@@ -1,6 +1,8 @@
 # Masar Amanah Health (مسار أمانة)
 ## Executive Pitch Deck Blueprint: The Stephen Gear (Microsoft Innovation Hub) & Hack2Skill Rubric
 
+**Live Production Prototype:** [https://masar-amanah-health.vercel.app](https://masar-amanah-health.vercel.app)  
+**GitHub Repository:** [hitanshuac/masar-amanah-health (v2.6.0-vercel-production)](https://github.com/hitanshuac/masar-amanah-health)  
 **Track:** [Fertility] Male Reproductive Health $\leftrightarrow$ ADPHC IFHAS Cardiometabolic Wellbeing  
 **Event:** Future Health Digital Innovation Challenge (GITEX 2026)  
 **Submission Milestones:** November 15 Early Review | November 20 Final Submission  

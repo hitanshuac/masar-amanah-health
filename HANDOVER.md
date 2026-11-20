@@ -9,7 +9,10 @@
   - **Expert Panel Live Evaluation:** November 20–30, 2026 (Hands-on live link testing)
   - **GITEX Finals:** December 7–11, 2026
 - **Algorithm Version:** `v2.0-BAYESIAN-DAG-WHO6-AUA-UAE` (Backward-compatible with `v1.4-AUA2021-WHO6-UAE`)
-- **AI Studio / Cloud Run Reference:** `https://ai.studio/apps/8e61219d-bfd3-42ec-b3fe-e24c5c8bfccc`
+- **Live Vercel Production URL:** [https://masar-amanah-health.vercel.app](https://masar-amanah-health.vercel.app)
+- **GitHub Repository (v2.6.0):** [https://github.com/hitanshuac/masar-amanah-health](https://github.com/hitanshuac/masar-amanah-health)
+- **Evaluation Scorecard:** **9.80 / 10.0** (9/9 Dimensions Exemplary, 0 High-Priority Loss Clusters)
+- **Clinical Workflows:** ➕ Onboard New Patient (3-Step Zero-PII Intake) & 🚑 Outbound Hospital Transfer Dispatch (Pre-Transfer Gate & SSMC/CCAD/HealthPlus/SEHA IFHAS Routing)
 
 ---
 

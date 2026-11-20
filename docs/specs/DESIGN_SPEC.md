@@ -1,6 +1,6 @@
 # Design Specification — Masar Amanah Health (مسار أمانة)
 
-> Reference: https://ai.studio/apps/8e61219d-bfd3-42ec-b3fe-e24c5c8bfccc
+> Production Deployment: https://masar-amanah-health.vercel.app (Initial Prototype: https://ai.studio/apps/8e61219d-bfd3-42ec-b3fe-e24c5c8bfccc)
 > Brand: Masar Amanah Health · Emerald/Slate palette · Cairo + Plus Jakarta Sans typography
 > Input: docs/specs/PRODUCT_SPEC.md (PM-1 through PM-35)
 

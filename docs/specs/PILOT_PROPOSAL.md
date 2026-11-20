@@ -2,9 +2,11 @@
 ## GITEX 2026 · Future Health Digital Innovation Challenge
 ### Department of Health (DoH) Abu Dhabi · ADPHC · Inception42 · Microsoft · MBZUAI
 
+**Live Production Deployment:** [https://masar-amanah-health.vercel.app](https://masar-amanah-health.vercel.app)  
+**GitHub Repository:** [hitanshuac/masar-amanah-health (v2.6.0-vercel-production)](https://github.com/hitanshuac/masar-amanah-health)  
 **Track:** `[Fertility] Male Reproductive Health` (Integrated with ADPHC `IFHAS` Cardio-Renal-Metabolic Screening)  
 **Algorithm Version:** `v2.0-BAYESIAN-DAG-WHO6-AUA-UAE`  
-**Deployment Target:** Google Cloud Run (Fully Managed Container) · Local Port 3000 / Production Port 8080  
+**Deployment Target:** Vercel Global Edge (Web Client) & Google Cloud Run (Container Backend)  
 **Architectural Baseline:** Zero-PII Deterministic Hybrid Engine with Closed-Loop Bayesian Differential Diagnosis Graph  
 
 ---

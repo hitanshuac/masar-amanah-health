@@ -5,7 +5,7 @@
 - ROLES: patient, clinician_companion, system_auditor
 - CATEGORIES (BEATS): Emergency (Tier 1), Andrology (Tier 2), Primary Care (Tier 3), Lifestyle (Tier 4)
 - CANDIDATE_SOURCES: WHO 6th Edition Semen Manual (2021), AUA/ASRM Clinical Practice Guidelines, EAU Infertility Guidelines, Endocrine Society Clinical Practice Guidelines
-- REFERENCE (UI): https://ai.studio/apps/8e61219d-bfd3-42ec-b3fe-e24c5c8bfccc
+- REFERENCE (UI): https://masar-amanah-health.vercel.app (Initial Prototype: https://ai.studio/apps/8e61219d-bfd3-42ec-b3fe-e24c5c8bfccc)
 - BRAND: Masar Amanah Health (مسار أمانة)
 - RUNTIME: Vite 8 + React 19 + Express (local dev), Cloud Run (production)
 - LLM_PROVIDER: Google Gemini (@google/genai ^2.4.0, gemini-2.5-flash)
